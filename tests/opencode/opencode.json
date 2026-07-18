@@ -1,5 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "tools": {
+    "read": false,
+    "write": false,
+    "edit": false,
+    "apply_patch": false
+  },
   "mcp": {
     "Loopwhole": {
       "type": "local",
