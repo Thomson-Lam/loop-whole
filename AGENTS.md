@@ -1,6 +1,6 @@
 # Warp MCP Gateway
 
-A Rust MCP gateway exposing workspace-scoped `read` and `write` tools over stdio, retaining tool-call evidence in memory for the active session, serving a polling API for a future observability UI, and dumping one session JSON file to `.loopwhole/` on shutdown. Repository baselines, hashing, compaction, compression, and diffs are not implemented yet.
+A Rust MCP gateway exposing context-aware file tools and an allowlisted developer-command runner over stdio, retaining tool-call evidence and runtime comparison baselines in memory, serving a polling API for a future observability UI, and dumping one session JSON file to `.loopwhole/` on shutdown. Repeated read views and commands support unchanged or progressive-diff delivery, with bounded command output and an initial Cargo test projection.
 
 ## Project rules
 
@@ -14,9 +14,10 @@ A Rust MCP gateway exposing workspace-scoped `read` and `write` tools over stdio
 ## Index
 
 - `src/main.rs` — CLI configuration and MCP/HTTP server lifecycle.
-- `src/mcp.rs` — MCP tools, token accounting, and session recording.
-- `src/tools.rs` — Read/write behavior, truncation, path enforcement, and write locking.
-- `src/store.rs` — Concurrent in-memory session records, token-summary projections, and shutdown JSON serialization.
+- `src/mcp.rs` — MCP tools, context-delivery decisions, token accounting, and session recording.
+- `src/tools.rs` — Read/create/edit behavior, truncation, path enforcement, and write locking.
+- `src/commands.rs` — Allowlisted command execution, bounded output capture, normalization, and Cargo test projection.
+- `src/store.rs` — Concurrent in-memory evidence and runtime baselines, token-summary projections, and shutdown JSON serialization.
 - `src/api.rs` — Health, session polling, and tool-call detail endpoints.
 - `src/logging.rs` — Repo-local diagnostics mirrored to stderr and `logs/`.
 - `src/schema.rs` — MCP inputs and frontend API response types.
@@ -24,7 +25,7 @@ A Rust MCP gateway exposing workspace-scoped `read` and `write` tools over stdio
 - `.loopwhole.example/session.schema.json` — Committed reference schema for persisted session dumps.
 - `docs/planning/` — Feature, optimization, frontend, and silent-failure specifications.
 
-Tests currently live beside the implementation in `src/mcp.rs` and `src/tools.rs`.
+Tests currently live beside the implementation in `src/commands.rs`, `src/mcp.rs`, `src/store.rs`, and `src/tools.rs`.
 
 ## Validation
 

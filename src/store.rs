@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     path::Path,
     sync::{Arc, RwLock},
 };
@@ -21,6 +22,41 @@ struct StoreData {
     session: SessionSummary,
     next_id: i64,
     tool_calls: Vec<StoredToolCall>,
+    // ponytail: session calls are expected to be serial; add per-key locks for concurrent agents.
+    read_baselines: HashMap<ReadBaselineKey, ReadBaseline>,
+    command_baselines: HashMap<CommandBaselineKey, CommandBaseline>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ReadBaselineKey {
+    pub path: String,
+    pub offset: usize,
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReadBaseline {
+    pub text: String,
+    pub view_hash: String,
+    pub file_hash: String,
+    pub was_truncated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CommandBaselineKey {
+    pub program: String,
+    pub args: Vec<String>,
+    pub cwd: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CommandBaseline {
+    pub exit_code: i32,
+    pub raw_output_hash: String,
+    pub canonical_text: String,
+    pub canonical_hash: String,
+    pub output_was_truncated: bool,
+    pub adapter_kind: String,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +110,8 @@ impl SessionStore {
                 session,
                 next_id: 1,
                 tool_calls: Vec::new(),
+                read_baselines: HashMap::new(),
+                command_baselines: HashMap::new(),
             })),
         }
     }
@@ -84,6 +122,40 @@ impl SessionStore {
         store.next_id += 1;
         store.tool_calls.push(StoredToolCall { id, call });
         id
+    }
+
+    pub fn read_baseline(&self, key: &ReadBaselineKey) -> Option<ReadBaseline> {
+        self.inner
+            .read()
+            .expect("session store lock poisoned")
+            .read_baselines
+            .get(key)
+            .cloned()
+    }
+
+    pub fn set_read_baseline(&self, key: ReadBaselineKey, baseline: ReadBaseline) {
+        self.inner
+            .write()
+            .expect("session store lock poisoned")
+            .read_baselines
+            .insert(key, baseline);
+    }
+
+    pub fn command_baseline(&self, key: &CommandBaselineKey) -> Option<CommandBaseline> {
+        self.inner
+            .read()
+            .expect("session store lock poisoned")
+            .command_baselines
+            .get(key)
+            .cloned()
+    }
+
+    pub fn set_command_baseline(&self, key: CommandBaselineKey, baseline: CommandBaseline) {
+        self.inner
+            .write()
+            .expect("session store lock poisoned")
+            .command_baselines
+            .insert(key, baseline);
     }
 
     pub fn snapshot(&self) -> SessionSnapshot {
@@ -317,5 +389,33 @@ mod tests {
         assert_eq!(snapshot.tool_calls.len(), 1);
         assert_eq!(snapshot.totals.saved_tokens, 1);
         assert_eq!(store.tool_call(1).unwrap().original.text, "12345678");
+    }
+
+    #[test]
+    fn keeps_runtime_baselines_in_session_memory() {
+        let store = SessionStore::new(SessionSummary {
+            id: "test".to_string(),
+            started_at_ms: 1,
+            workspace_root: "/tmp".to_string(),
+            context_window_tokens: None,
+            token_counter: "test".to_string(),
+        });
+        let key = ReadBaselineKey {
+            path: "src/main.rs".to_string(),
+            offset: 1,
+            limit: Some(10),
+        };
+        store.set_read_baseline(
+            key.clone(),
+            ReadBaseline {
+                text: "fn main() {}".to_string(),
+                view_hash: "view".to_string(),
+                file_hash: "file".to_string(),
+                was_truncated: false,
+            },
+        );
+
+        assert_eq!(store.read_baseline(&key).unwrap().view_hash, "view");
+        assert!(store.snapshot().tool_calls.is_empty());
     }
 }
