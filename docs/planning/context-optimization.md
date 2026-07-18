@@ -36,7 +36,7 @@ compact result
 agent sees compact result
 ```
 
-It has reducer tiers, deterministic filters, token accounting, and raw-output recovery through artifacts. It also has `hypa_read` modes such as `outline`, `signatures`, `pruned`, and `smart`, and its Pi integration can intercept shell calls before their output reaches the agent.
+It has parser tiers, deterministic filters, token accounting, and raw-output recovery through artifacts. It also has `hypa_read` modes such as `outline`, `signatures`, `pruned`, and `smart`, and its Pi integration can intercept shell calls before their output reaches the agent.
 
 This is a good foundation, but there are actually **two separate compression problems**.
 
