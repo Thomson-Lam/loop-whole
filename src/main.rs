@@ -1,4 +1,5 @@
 mod api;
+mod commands;
 mod logging;
 mod mcp;
 mod schema;
@@ -18,6 +19,7 @@ use uuid::Uuid;
 
 use crate::{
     api::ApiState,
+    commands::CommandTools,
     logging::{init as init_logging, log_line},
     mcp::{Gateway, GatewayState, now_ms},
     schema::SessionSummary,
@@ -67,6 +69,7 @@ async fn main() -> Result<()> {
     let gateway_state = Arc::new(GatewayState {
         store: store.clone(),
         files: FileTools::new(root.clone()),
+        commands: CommandTools::new(root.clone()),
         sequence: AtomicU64::new(1),
     });
     let api_state = Arc::new(ApiState {

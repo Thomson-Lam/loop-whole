@@ -1,11 +1,12 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, hash_map::DefaultHasher},
+    hash::Hasher,
     path::{Component, Path, PathBuf},
     sync::Arc,
 };
 
 use anyhow::{Context, Result, bail};
-use tokio::sync::Mutex;
+use tokio::{io::AsyncWriteExt, sync::Mutex};
 
 const MAX_LINES: usize = 2_000;
 const MAX_BYTES: usize = 50 * 1024;
@@ -18,7 +19,24 @@ pub struct FileTools {
 
 #[derive(Debug)]
 pub struct ReadOutput {
+    pub baseline_path: String,
     pub text: String,
+    pub view_hash: String,
+    pub file_hash: String,
+    pub was_truncated: bool,
+}
+
+#[derive(Debug)]
+pub struct WriteOutput {
+    pub text: String,
+    pub current_hash: String,
+}
+
+#[derive(Debug)]
+pub struct EditOutput {
+    pub text: String,
+    pub baseline_hash: String,
+    pub current_hash: String,
 }
 
 impl FileTools {
@@ -45,6 +63,7 @@ impl FileTools {
         let content = tokio::fs::read_to_string(&absolute)
             .await
             .with_context(|| format!("failed to read {}", display_path(path)))?;
+        let file_hash = hash_text(&content);
         let all_lines: Vec<&str> = content.split('\n').collect();
         let start = offset.unwrap_or(1) - 1;
         if start >= all_lines.len() {
@@ -81,10 +100,16 @@ impl FileTools {
             ));
         }
 
-        Ok(ReadOutput { text: output })
+        Ok(ReadOutput {
+            baseline_path: absolute.to_string_lossy().into_owned(),
+            view_hash: hash_text(&output),
+            file_hash,
+            was_truncated: truncated.was_truncated || end < all_lines.len(),
+            text: output,
+        })
     }
 
-    pub async fn write(&self, path: &str, content: &str) -> Result<String> {
+    pub async fn write(&self, path: &str, content: &str) -> Result<WriteOutput> {
         let absolute = self.resolve_for_write(path).await?;
         let lock = {
             let mut locks = self.write_locks.lock().await;
@@ -104,14 +129,77 @@ impl FileTools {
                 display_path(path)
             )
         })?;
-        tokio::fs::write(&absolute, content)
+        let mut file = match tokio::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&absolute)
             .await
-            .with_context(|| format!("failed to write {}", display_path(path)))?;
-        Ok(format!(
-            "Successfully wrote {} bytes to {}",
-            content.len(),
-            display_path(path)
-        ))
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                bail!("{} already exists; use edit instead", display_path(path));
+            }
+            Err(error) => {
+                return Err(error)
+                    .with_context(|| format!("failed to create {}", display_path(path)));
+            }
+        };
+        if let Err(error) = file.write_all(content.as_bytes()).await {
+            drop(file);
+            let _ = tokio::fs::remove_file(&absolute).await;
+            return Err(error).with_context(|| format!("failed to write {}", display_path(path)));
+        }
+        Ok(WriteOutput {
+            text: format!("Created {} bytes at {}", content.len(), display_path(path)),
+            current_hash: hash_text(content),
+        })
+    }
+
+    pub async fn edit(&self, path: &str, old_text: &str, new_text: &str) -> Result<EditOutput> {
+        if old_text.is_empty() {
+            bail!("old_text must not be empty");
+        }
+        let absolute = self.resolve_existing(path).await?;
+        let lock = {
+            let mut locks = self.write_locks.lock().await;
+            locks
+                .entry(absolute.clone())
+                .or_insert_with(|| Arc::new(Mutex::new(())))
+                .clone()
+        };
+        let _guard = lock.lock().await;
+        let content = tokio::fs::read_to_string(&absolute)
+            .await
+            .with_context(|| format!("failed to read {}", display_path(path)))?;
+        let start = content
+            .find(old_text)
+            .with_context(|| format!("old_text was not found in {}", display_path(path)))?;
+        let next_character = content[start..]
+            .chars()
+            .next()
+            .expect("non-empty old_text matched")
+            .len_utf8();
+        if content[start + next_character..].contains(old_text) {
+            bail!(
+                "old_text occurs more than once in {}; provide a unique match",
+                display_path(path)
+            );
+        }
+
+        let baseline_hash = hash_text(&content);
+        let mut updated = String::with_capacity(content.len() - old_text.len() + new_text.len());
+        updated.push_str(&content[..start]);
+        updated.push_str(new_text);
+        updated.push_str(&content[start + old_text.len()..]);
+        let current_hash = hash_text(&updated);
+        atomic_replace(&absolute, updated.as_bytes())
+            .await
+            .with_context(|| format!("failed to edit {}", display_path(path)))?;
+        Ok(EditOutput {
+            text: format!("Edited {}", display_path(path)),
+            baseline_hash,
+            current_hash,
+        })
     }
 
     async fn resolve_existing(&self, raw: &str) -> Result<PathBuf> {
@@ -244,8 +332,48 @@ fn normalize(path: &Path) -> Result<PathBuf> {
     Ok(normalized)
 }
 
+async fn atomic_replace(path: &Path, content: &[u8]) -> Result<()> {
+    let parent = path
+        .parent()
+        .context("edit target has no parent directory")?;
+    let file_name = path
+        .file_name()
+        .context("edit target has no file name")?
+        .to_string_lossy();
+    let temporary = parent.join(format!(".{file_name}.{}.tmp", uuid::Uuid::new_v4()));
+    let permissions = tokio::fs::metadata(path).await?.permissions();
+    let mut file = tokio::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .await?;
+    let staged: Result<()> = async {
+        file.write_all(content).await?;
+        file.flush().await?;
+        tokio::fs::set_permissions(&temporary, permissions).await?;
+        Ok(())
+    }
+    .await;
+    drop(file);
+    if let Err(error) = staged {
+        let _ = tokio::fs::remove_file(&temporary).await;
+        return Err(error);
+    }
+    if let Err(error) = tokio::fs::rename(&temporary, path).await {
+        let _ = tokio::fs::remove_file(&temporary).await;
+        return Err(error.into());
+    }
+    Ok(())
+}
+
 fn display_path(path: &str) -> &str {
     path.strip_prefix('@').unwrap_or(path)
+}
+
+fn hash_text(text: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    hasher.write(text.as_bytes());
+    format!("{:016x}", hasher.finish())
 }
 
 #[cfg(test)]
@@ -259,6 +387,34 @@ mod tests {
         assert!(output.was_truncated);
         assert_eq!(output.lines, 2_000);
         assert_eq!(output.text.lines().count(), 2_000);
+    }
+
+    #[tokio::test]
+    async fn creates_once_and_edits_unique_text() {
+        let root = tempfile::tempdir().unwrap();
+        let root_path = tokio::fs::canonicalize(root.path()).await.unwrap();
+        let tools = FileTools::new(root_path);
+
+        tools.write("example.txt", "one\ntwo\n").await.unwrap();
+        assert!(tools.write("example.txt", "replacement").await.is_err());
+        tools.edit("example.txt", "two", "three").await.unwrap();
+        assert_eq!(
+            tokio::fs::read_to_string(root.path().join("example.txt"))
+                .await
+                .unwrap(),
+            "one\nthree\n"
+        );
+    }
+
+    #[tokio::test]
+    async fn rejects_ambiguous_edit() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("example.txt"), "same same").unwrap();
+        let root_path = tokio::fs::canonicalize(root.path()).await.unwrap();
+        let tools = FileTools::new(root_path);
+        assert!(tools.edit("example.txt", "same", "new").await.is_err());
+        std::fs::write(root.path().join("overlap.txt"), "aaa").unwrap();
+        assert!(tools.edit("overlap.txt", "aa", "new").await.is_err());
     }
 
     #[tokio::test]
