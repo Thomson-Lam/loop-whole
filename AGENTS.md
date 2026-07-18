@@ -9,6 +9,7 @@ A Rust MCP gateway exposing workspace-scoped `read` and `write` tools over stdio
 - Keep original and intercepted payloads separate even while they are identical.
 - Prefer the smallest direct implementation needed for the hackathon demo.
 - Whenever a file is added, removed, or changes purpose, update the index in this `AGENTS.md` in the same change.
+- Remind the user to run cargo build after file changes: output "test (run cargo build)?"
 
 ## Index
 
