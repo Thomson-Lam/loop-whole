@@ -1,0 +1,206 @@
+{
+  "session": {
+    "id": "loopey-demo",
+    "startedAtMs": 1774267200000,
+    "endedAtMs": 1774267208000,
+    "workspaceRoot": "/home/dev/warp-mcp-gateway",
+    "contextWindowTokens": 200000,
+    "tokenCounter": "chars_div_4_v1"
+  },
+  "totals": {
+    "toolInputTokens": 259,
+    "originalOutputTokens": 2967,
+    "interceptedOutputTokens": 1601,
+    "withoutRuntimeTokens": 3226,
+    "withRuntimeTokens": 1860,
+    "savedTokens": 1366,
+    "savingsPercent": 42.34,
+    "withoutRuntimeContextPercent": 1.61,
+    "withRuntimeContextPercent": 0.93
+  },
+  "toolCalls": [
+    {
+      "id": 1,
+      "sequence": 1,
+      "occurredAtMs": 1774267201000,
+      "toolName": "read",
+      "subjectPath": "src/main.rs",
+      "status": "success",
+      "durationMs": 5,
+      "deliveryMode": "full",
+      "decisionReason": "no_baseline_observed",
+      "baselineHash": null,
+      "currentHash": "sha256:62ac7c399d39",
+      "input": {
+        "path": "src/main.rs"
+      },
+      "original": {
+        "text": "use std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\nuse std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\nuse std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\n",
+        "bytes": 2241,
+        "tokens": 561
+      },
+      "intercepted": {
+        "text": "use std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\nuse std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\nuse std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\n",
+        "bytes": 2241,
+        "tokens": 561
+      }
+    },
+    {
+      "id": 2,
+      "sequence": 2,
+      "occurredAtMs": 1774267202000,
+      "toolName": "read",
+      "subjectPath": "src/store.rs",
+      "status": "success",
+      "durationMs": 6,
+      "deliveryMode": "full",
+      "decisionReason": "no_baseline_observed",
+      "baselineHash": null,
+      "currentHash": "sha256:d1b2eceefac8",
+      "input": {
+        "path": "src/store.rs"
+      },
+      "original": {
+        "text": "use std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\nuse std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\nuse std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\n",
+        "bytes": 2859,
+        "tokens": 715
+      },
+      "intercepted": {
+        "text": "use std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\nuse std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\nuse std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\n",
+        "bytes": 2859,
+        "tokens": 715
+      }
+    },
+    {
+      "id": 3,
+      "sequence": 3,
+      "occurredAtMs": 1774267203000,
+      "toolName": "read",
+      "subjectPath": "src/schema.rs",
+      "status": "success",
+      "durationMs": 4,
+      "deliveryMode": "full",
+      "decisionReason": "no_baseline_observed",
+      "baselineHash": null,
+      "currentHash": "sha256:4132a04a3518",
+      "input": {
+        "path": "src/schema.rs"
+      },
+      "original": {
+        "text": "#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n",
+        "bytes": 784,
+        "tokens": 196
+      },
+      "intercepted": {
+        "text": "#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n",
+        "bytes": 784,
+        "tokens": 196
+      }
+    },
+    {
+      "id": 4,
+      "sequence": 4,
+      "occurredAtMs": 1774267204000,
+      "toolName": "read",
+      "subjectPath": "src/main.rs",
+      "status": "success",
+      "durationMs": 3,
+      "deliveryMode": "unchanged",
+      "decisionReason": "hash_match_since_seq_1",
+      "baselineHash": "sha256:62ac7c399d39",
+      "currentHash": "sha256:62ac7c399d39",
+      "input": {
+        "path": "src/main.rs"
+      },
+      "original": {
+        "text": "use std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\nuse std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\nuse std::sync::Arc;\n\nuse anyhow::Result;\nuse clap::Parser;\n\nuse crate::gateway::Gateway;\nuse crate::store::SessionStore;\n\n#[derive(Debug, Parser)]\nstruct Args {\n    #[arg(long, default_value = \".\")]\n    root: std::path::PathBuf,\n    #[arg(long, default_value = \"127.0.0.1:8787\")]\n    api_addr: std::net::SocketAddr,\n    #[arg(long)]\n    session_id: Option<String>,\n    #[arg(long)]\n    context_window_tokens: Option<u64>,\n}\n\n#[tokio::main]\nasync fn main() -> Result<()> {\n    let args = Args::parse();\n    let store = SessionStore::new(session_summary(&args));\n    let gateway = Gateway::new(store.clone());\n    serve_api(args.api_addr, store.clone()).await?;\n    gateway.serve_stdio().await?;\n    store.persist_on_shutdown().await?;\n    Ok(())\n}\n",
+        "bytes": 2241,
+        "tokens": 561
+      },
+      "intercepted": {
+        "text": "[loopey] file unchanged since seq 1 (baseline sha256:62ac7c399d39); 0 bytes re-sent to the model",
+        "bytes": 96,
+        "tokens": 24
+      }
+    },
+    {
+      "id": 5,
+      "sequence": 5,
+      "occurredAtMs": 1774267205000,
+      "toolName": "read",
+      "subjectPath": "src/store.rs",
+      "status": "success",
+      "durationMs": 3,
+      "deliveryMode": "unchanged",
+      "decisionReason": "hash_match_since_seq_2",
+      "baselineHash": "sha256:d1b2eceefac8",
+      "currentHash": "sha256:d1b2eceefac8",
+      "input": {
+        "path": "src/store.rs"
+      },
+      "original": {
+        "text": "use std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\nuse std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\nuse std::sync::{Arc, RwLock};\n\nuse crate::schema::{NewToolCall, SessionSnapshot, TokenTotals, ToolCallSummary};\n\n#[derive(Debug, Clone)]\npub struct SessionStore {\n    inner: Arc<RwLock<StoreData>>,\n}\n\nimpl SessionStore {\n    pub fn record(&self, call: NewToolCall) -> i64 {\n        let mut store = self.inner.write().expect(\"lock poisoned\");\n        let id = store.next_id;\n        store.next_id += 1;\n        store.tool_calls.push(StoredToolCall { id, call });\n        id\n    }\n\n    pub fn snapshot(&self) -> SessionSnapshot {\n        let store = self.inner.read().expect(\"lock poisoned\");\n        let input = store.tool_calls.iter().map(|c| c.call.input_tokens).sum();\n        let original = store.tool_calls.iter().map(|c| c.call.original_output_tokens).sum();\n        let intercepted = store.tool_calls.iter().map(|c| c.call.intercepted_output_tokens).sum();\n        SessionSnapshot::new(store.session.clone(), input, original, intercepted)\n    }\n}\n",
+        "bytes": 2859,
+        "tokens": 715
+      },
+      "intercepted": {
+        "text": "[loopey] file unchanged since seq 2 (baseline sha256:d1b2eceefac8); 0 bytes re-sent to the model",
+        "bytes": 96,
+        "tokens": 24
+      }
+    },
+    {
+      "id": 6,
+      "sequence": 6,
+      "occurredAtMs": 1774267206000,
+      "toolName": "write",
+      "subjectPath": "src/schema.rs",
+      "status": "success",
+      "durationMs": 8,
+      "deliveryMode": "passthrough",
+      "decisionReason": "state_optimization_not_enabled",
+      "baselineHash": null,
+      "currentHash": "sha256:a914d8eaa675",
+      "input": {
+        "path": "src/schema.rs",
+        "content": "#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub decision_reason: Option<String>,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n"
+      },
+      "original": {
+        "text": "Successfully wrote 825 bytes to src/schema.rs",
+        "bytes": 45,
+        "tokens": 12
+      },
+      "intercepted": {
+        "text": "Successfully wrote 825 bytes to src/schema.rs",
+        "bytes": 45,
+        "tokens": 12
+      }
+    },
+    {
+      "id": 7,
+      "sequence": 7,
+      "occurredAtMs": 1774267207000,
+      "toolName": "read",
+      "subjectPath": "src/schema.rs",
+      "status": "success",
+      "durationMs": 5,
+      "deliveryMode": "diff",
+      "decisionReason": "changed_since_seq_3",
+      "baselineHash": "sha256:4132a04a3518",
+      "currentHash": "sha256:a914d8eaa675",
+      "input": {
+        "path": "src/schema.rs"
+      },
+      "original": {
+        "text": "#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub decision_reason: Option<String>,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n#[derive(Debug, Clone)]\npub struct NewToolCall {\n    pub sequence: u64,\n    pub occurred_at_ms: i64,\n    pub tool_name: String,\n    pub subject_path: Option<String>,\n    pub status: String,\n    pub delivery_mode: String,\n    pub original_text: String,\n    pub intercepted_text: String,\n    pub input_tokens: u64,\n    pub original_output_tokens: u64,\n    pub intercepted_output_tokens: u64,\n}\n",
+        "bytes": 825,
+        "tokens": 207
+      },
+      "intercepted": {
+        "text": "@@ schema.rs (baseline sha256:4132a04a3518 -> current sha256:a914d8eaa675) @@\n pub struct NewToolCall {\n     pub delivery_mode: String,\n+    pub decision_reason: Option<String>,\n     pub original_text: String,\n[loopey] delivered 1 changed hunk; 41 unchanged lines suppressed",
+        "bytes": 274,
+        "tokens": 69
+      }
+    }
+  ]
+}
