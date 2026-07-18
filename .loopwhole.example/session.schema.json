@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://loopwhole.local/session.schema.json",
+  "title": "Loopwhole Session Dump",
+  "type": "object",
+  "required": ["session", "totals", "toolCalls"],
+  "properties": {
+    "session": {
+      "type": "object",
+      "required": [
+        "id",
+        "startedAtMs",
+        "endedAtMs",
+        "workspaceRoot",
+        "tokenCounter"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "startedAtMs": { "type": "integer" },
+        "endedAtMs": { "type": "integer" },
+        "workspaceRoot": { "type": "string" },
+        "contextWindowTokens": { "type": ["integer", "null"], "minimum": 0 },
+        "tokenCounter": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "totals": {
+      "type": "object",
+      "required": [
+        "toolInputTokens",
+        "originalOutputTokens",
+        "interceptedOutputTokens",
+        "withoutRuntimeTokens",
+        "withRuntimeTokens",
+        "savedTokens",
+        "savingsPercent"
+      ],
+      "properties": {
+        "toolInputTokens": { "type": "integer", "minimum": 0 },
+        "originalOutputTokens": { "type": "integer", "minimum": 0 },
+        "interceptedOutputTokens": { "type": "integer", "minimum": 0 },
+        "withoutRuntimeTokens": { "type": "integer", "minimum": 0 },
+        "withRuntimeTokens": { "type": "integer", "minimum": 0 },
+        "savedTokens": { "type": "integer" },
+        "savingsPercent": { "type": "number" },
+        "withoutRuntimeContextPercent": { "type": ["number", "null"] },
+        "withRuntimeContextPercent": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "toolCalls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "sequence",
+          "occurredAtMs",
+          "toolName",
+          "status",
+          "durationMs",
+          "deliveryMode",
+          "input",
+          "original",
+          "intercepted"
+        ],
+        "properties": {
+          "id": { "type": "integer" },
+          "sequence": { "type": "integer", "minimum": 0 },
+          "occurredAtMs": { "type": "integer" },
+          "toolName": { "type": "string" },
+          "subjectPath": { "type": ["string", "null"] },
+          "status": { "type": "string" },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "deliveryMode": { "type": "string" },
+          "decisionReason": { "type": ["string", "null"] },
+          "baselineHash": { "type": ["string", "null"] },
+          "currentHash": { "type": ["string", "null"] },
+          "input": {},
+          "original": {
+            "$ref": "#/$defs/toolPayload"
+          },
+          "intercepted": {
+            "$ref": "#/$defs/toolPayload"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "toolPayload": {
+      "type": "object",
+      "required": ["text", "bytes", "tokens"],
+      "properties": {
+        "text": { "type": "string" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "tokens": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
