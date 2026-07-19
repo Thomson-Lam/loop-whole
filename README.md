@@ -14,18 +14,18 @@ Repeated reads and commands return unchanged markers or progressive diffs. Comma
 First, build the executable:
 
 ```bash
-cargo build --release
+cargo build --manifest-path server/Cargo.toml --release
 ```
 
 The binary is created at:
 
 ```text
-target/release/warp-mcp-gateway
+server/target/release/warp-mcp-gateway
 ```
 
 Next, configure your MCP client to launch that binary. You normally do **not** start the gateway separately: the client starts it as a child process, sends MCP requests through its stdin, reads MCP responses from its stdout, and stops it when the client session ends.
 
-Re-run `cargo build --release` after changing the Rust code.
+Re-run `cargo build --manifest-path server/Cargo.toml --release` after changing the Rust code.
 
 ## Configure an MCP client
 
@@ -35,7 +35,7 @@ Configure your MCP client to launch the binary over stdio. Use absolute paths wh
 {
   "mcpServers": {
     "warp": {
-      "command": "/absolute/path/to/warp/target/release/warp-mcp-gateway",
+      "command": "/absolute/path/to/warp/server/target/release/warp-mcp-gateway",
       "args": [
         "--root",
         "/absolute/path/to/workspace",
@@ -49,7 +49,7 @@ Configure your MCP client to launch the binary over stdio. Use absolute paths wh
 
 Disable the agent's equivalent native tools so reads, file mutations, and demo commands use the MCP gateway.
 
-The server reserves stdout for MCP protocol messages. Diagnostics are written to stderr and mirrored to `logs/<session-id>.log` in the repository root.
+The server reserves stdout for MCP protocol messages. Diagnostics are written to stderr and mirrored to `logs/<session-id>.log` under the configured workspace root.
 
 ## Options
 
@@ -63,7 +63,7 @@ The server reserves stdout for MCP protocol messages. Diagnostics are written to
 Example:
 
 ```bash
-target/release/warp-mcp-gateway \
+server/target/release/warp-mcp-gateway \
   --root /path/to/project \
   --session-id demo-session \
   --context-window-tokens 200000
@@ -73,7 +73,7 @@ This is the command the MCP client launches; it is shown for clarity rather than
 
 Expected startup order:
 
-1. Build with `cargo build --release`.
+1. Build with `cargo build --manifest-path server/Cargo.toml --release`.
 2. Configure the MCP client with the resulting binary path and arguments.
 3. Start the MCP client; it launches the gateway automatically.
 4. Open the frontend while the client session is running.
@@ -296,20 +296,22 @@ The `logs/` directory is gitignored. This is the easiest way to inspect server a
 
 ## OpenCode smoke tests
 
-An isolated fixture and instruction-driven runner live in `tests/opencode/`:
+An isolated fixture and instruction-driven runner live in `server/tests/opencode/`:
 
 ```bash
-tests/opencode/run-smoke.sh 01-read-unchanged
-tests/opencode/run-smoke.sh 04-bash-unchanged
-tests/opencode/run-smoke.sh all
+server/tests/opencode/run-smoke.sh 01-read-unchanged
+server/tests/opencode/run-smoke.sh 04-bash-unchanged
+server/tests/opencode/run-smoke.sh all
 ```
 
-Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call log metrics plus shutdown session totals. See `tests/opencode/README.md`.
+Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call log metrics plus shutdown session totals. See `server/tests/opencode/README.md`.
 
 ## Development checks
 
 ```bash
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-cargo test
+cargo fmt --manifest-path server/Cargo.toml -- --check
+cargo clippy --manifest-path server/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path server/Cargo.toml
+npm --prefix web run lint
+npm --prefix web run build
 ```

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "tools": {
+    "read": false,
+    "write": false,
+    "edit": false,
+    "apply_patch": false,
+    "bash": false
+  },
+  "mcp": {
+    "Loopwhole": {
+      "type": "local",
+      "command": [
+        "/Users/tlam/warp/server/target/debug/warp-mcp-gateway",
+        "--root",
+        "/Users/tlam/warp/server/tests/opencode/workspace",
+        "--api-addr",
+        "127.0.0.1:8787"
+      ],
+      "enabled": true,
+      "timeout": 15000
+    }
+  }
+}
