@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import useLiveSession from "./useLiveSession";
+import SessionChat from "./SessionChat";
 
 const MODE_LABEL = {
   full: "FULL",
@@ -195,6 +196,8 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <SessionChat session={session} />
     </div>
   );
 }
