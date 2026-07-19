@@ -15,9 +15,7 @@
         "--root",
         "/Users/tlam/warp/tests/opencode/workspace",
         "--api-addr",
-        "127.0.0.1:8787",
-        "--session-id",
-        "opencode-smoke"
+        "127.0.0.1:8787"
       ],
       "enabled": true,
       "timeout": 15000
