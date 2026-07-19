@@ -129,11 +129,55 @@ DIFF_TEXT = """@@ schema.rs (baseline sha256:{old} -> current sha256:{new}) @@
      pub original_text: String,
 [loopey] delivered 1 changed hunk; 41 unchanged lines suppressed"""
 
+# After the agent's edit: a single unique line in store.rs gains a comment.
+# `.replace(..., 1)` mutates only the first occurrence, so this stays a
+# realistic one-hunk change even though the demo file is padded.
+STORE_RS_V2 = STORE_RS.replace(
+    "        store.next_id += 1;\n",
+    "        store.next_id += 1; // ids are session-local\n",
+    1,
+)
+
+STORE_DIFF_TEXT = """@@ store.rs (baseline sha256:{old} -> current sha256:{new}) @@
+         let id = store.next_id;
+-        store.next_id += 1;
++        store.next_id += 1; // ids are session-local
+         store.tool_calls.push(StoredToolCall {{ id, call }});
+[loopey] delivered 1 changed hunk; 71 unchanged lines suppressed"""
+
+# --- Bash: same command always executes; only delivery is compacted ---------
+# The MCP `bash` tool spawns an allowlisted program directly (no shell). The
+# original pane is the real bounded stdout/stderr; the intercepted pane is the
+# canonical Cargo-test projection (first run) or an unchanged marker (repeat).
+
+CARGO_TEST_RAW = """   Compiling warp-mcp-gateway v0.1.0 (/home/dev/warp-mcp-gateway)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.21s
+     Running unittests src/lib.rs (target/debug/deps/warp_mcp_gateway-9f2c1a3b7d)
+
+running 2 tests
+test tools::tests::read_rejects_zero_offset ... ok
+test commands::tests::cargo_test_projection_parses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[Exit code: 0]"""
+
+CARGO_TEST_CANONICAL = """Cargo test: PASSED
+2 passed; 0 failed
+[Exit code: 0]"""
+
 
 def suppressed_stub(seq_first_seen: int, h: str) -> str:
     return (
         f"[loopey] file unchanged since seq {seq_first_seen} "
         f"(baseline {h}); 0 bytes re-sent to the model"
+    )
+
+
+def command_unchanged_stub(seq_first_seen: int, label: str) -> str:
+    return (
+        f"[loopey] command output unchanged since seq {seq_first_seen} "
+        f"({label}); 0 bytes re-sent to the model"
     )
 
 
@@ -174,8 +218,10 @@ def add_call(seq, tool, path, status, mode, reason, baseline_hash, current_hash,
 
 h_main = short_hash(MAIN_RS)
 h_store = short_hash(STORE_RS)
+h_store_v2 = short_hash(STORE_RS_V2)
 h_schema_v1 = short_hash(SCHEMA_RS_V1)
 h_schema_v2 = short_hash(SCHEMA_RS_V2)
+h_cargo = short_hash(CARGO_TEST_CANONICAL)
 
 # 1: first read of main.rs -> unseen, full delivery
 add_call(1, "read", "src/main.rs", "success", "full", "no_baseline_observed",
@@ -215,6 +261,41 @@ add_call(7, "read", "src/schema.rs", "success", "diff", "changed_since_seq_3",
          h_schema_v1, h_schema_v2,
          {"path": "src/schema.rs"}, SCHEMA_RS_V2, diff, 5)
 
+# 8: edit store.rs (one exact unique replacement) -> passthrough
+# Edit is a mutation-safety tool: its confirmation is already tiny, so
+# original == intercepted and this call saves no output tokens directly.
+edit_confirmation = "Edited src/store.rs"
+add_call(8, "edit", "src/store.rs", "success", "passthrough", "exact_text_replaced",
+         h_store, h_store_v2,
+         {"path": "src/store.rs",
+          "old_text": "        store.next_id += 1;",
+          "new_text": "        store.next_id += 1; // ids are session-local"},
+         edit_confirmation, edit_confirmation, 7)
+
+# 9: re-read store.rs (changed since seq 5 by the edit) -> diff delivery
+# This is the downstream payoff of the edit: the prior read baseline still
+# exists, so the next identical read can be delivered as a compact diff.
+store_diff = STORE_DIFF_TEXT.format(old=h_store.split(":")[1], new=h_store_v2.split(":")[1])
+add_call(9, "read", "src/store.rs", "success", "diff", "changed_since_seq_5",
+         h_store, h_store_v2,
+         {"path": "src/store.rs"}, STORE_RS_V2, store_diff, 4)
+
+# 10: run `cargo test` (no baseline yet) -> executes, canonical projection
+# Bash always executes; the first run has no baseline so Loopey returns the
+# canonical projection instead of the full noisy output.
+add_call(10, "bash", "cargo test", "success", "compressed", "no_command_baseline",
+         None, h_cargo,
+         {"program": "cargo", "args": ["test"]},
+         CARGO_TEST_RAW, CARGO_TEST_CANONICAL, 4213)
+
+# 11: run identical `cargo test` again -> executes again, output unchanged
+# The command runs a second time (not skipped); the canonical result and exit
+# code match the baseline, so only a short unchanged marker is delivered.
+add_call(11, "bash", "cargo test", "success", "unchanged", "command_output_unchanged",
+         h_cargo, h_cargo,
+         {"program": "cargo", "args": ["test"]},
+         CARGO_TEST_RAW, command_unchanged_stub(10, "cargo test"), 3980)
+
 
 # --- Totals (mirrors store.rs) ----------------------------------------------
 
@@ -235,7 +316,7 @@ session = {
     "session": {
         "id": SESSION_ID,
         "startedAtMs": START_MS,
-        "endedAtMs": START_MS + 8_000,
+        "endedAtMs": START_MS + (len(calls) + 1) * 1000,
         "workspaceRoot": "/home/dev/warp-mcp-gateway",
         "contextWindowTokens": CONTEXT_WINDOW,
         "tokenCounter": TOKEN_COUNTER,
@@ -254,10 +335,19 @@ session = {
     "toolCalls": calls,
 }
 
-out_path = Path(__file__).resolve().parent.parent / ".loopwhole.example" / "demo-session.json"
-out_path.write_text(json.dumps(session, indent=2) + "\n", encoding="utf-8")
+repo_root = Path(__file__).resolve().parent.parent
+serialized = json.dumps(session, indent=2) + "\n"
 
-print(f"wrote {out_path}")
+# The canonical reference dump plus the copy the web landing/dashboard imports.
+out_paths = [
+    repo_root / ".loopwhole.example" / "demo-session.json",
+    repo_root / "web" / "src" / "data" / "demo-session.json",
+]
+for out_path in out_paths:
+    if out_path.parent.exists():
+        out_path.write_text(serialized, encoding="utf-8")
+        print(f"wrote {out_path}")
+
 print(f"  tool calls:        {len(calls)}")
 print(f"  without runtime:   {without_runtime} tokens")
 print(f"  with runtime:      {with_runtime} tokens")

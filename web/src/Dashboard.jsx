@@ -6,6 +6,7 @@ const MODE_LABEL = {
   unchanged: "UNCHANGED",
   diff: "DIFF",
   passthrough: "PASSTHROUGH",
+  compressed: "COMPRESSED",
   error: "ERROR",
 };
 

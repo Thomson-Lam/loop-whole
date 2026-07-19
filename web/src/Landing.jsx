@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import Antigravity from "./Antigravity";
+import ToolReplay from "./ToolReplay";
 
 export default function Landing() {
   const progressRef = useRef(null);
@@ -45,7 +46,7 @@ export default function Landing() {
           </div>
           <nav className="nav-links">
             <a href="#how">How it works</a>
-            <a href="#">Docs</a>
+            <a href="#replay">Live replay</a>
             <a href="#/app">Dashboard</a>
           </nav>
           <a className="btn btn-primary" href="#/app">
@@ -167,6 +168,8 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        <ToolReplay />
       </main>
 
       <footer>
