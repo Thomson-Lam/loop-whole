@@ -20,27 +20,30 @@ Binary:
 target/release/warp-mcp-gateway
 ```
 
-## Suggested MCP server config
+## Suggested OpenCode test config
 
-Use absolute paths.
+A repo-scoped OpenCode config for this MCP server lives at:
 
-```json
-{
-  "mcpServers": {
-    "loopwhole": {
-      "command": "/absolute/path/to/warp/target/release/warp-mcp-gateway",
-      "args": [
-        "--root",
-        "/absolute/path/to/warp",
-        "--api-addr",
-        "127.0.0.1:8787",
-        "--session-id",
-        "opencode-test"
-      ]
-    }
-  }
-}
+```text
+tests/opencode/opencode.json
 ```
+
+It is intentionally separate from your global OpenCode config.
+
+Launch OpenCode with that config injected:
+
+```bash
+cd /Users/tlam/warp
+cargo build
+OPENCODE_CONFIG_CONTENT="$(jq -c . tests/opencode/opencode.json)" opencode /Users/tlam/warp
+```
+
+This uses a local MCP server named `Loopwhole` with:
+
+- binary: `/Users/tlam/warp/target/debug/warp-mcp-gateway`
+- root: `/Users/tlam/warp`
+- api: `127.0.0.1:8787`
+- session id: `opencode-loopwhole`
 
 Disable native read/write tools in the agent if possible so calls go through MCP.
 
