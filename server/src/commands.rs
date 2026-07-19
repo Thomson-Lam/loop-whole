@@ -9,12 +9,12 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use tokio::{
-    io::{AsyncRead, AsyncReadExt},
+    io::{AsyncRead, AsyncReadExt, AsyncWriteExt},
     process::Command,
     time::timeout,
 };
 
-use crate::schema::BashRequest;
+use crate::schema::BashCommand;
 
 const MAX_STREAM_BYTES: usize = 256 * 1024;
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
@@ -51,7 +51,7 @@ impl CommandTools {
         }
     }
 
-    pub async fn run(&self, request: &BashRequest) -> Result<CommandOutput> {
+    pub async fn run(&self, request: &BashCommand) -> Result<CommandOutput> {
         validate_allowlist(request)?;
         let cwd = self
             .resolve_cwd(request.cwd.as_deref().unwrap_or("."))
@@ -61,7 +61,11 @@ impl CommandTools {
         command
             .args(&request.args)
             .current_dir(&cwd)
-            .stdin(Stdio::null())
+            .stdin(if request.stdin.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
@@ -73,6 +77,18 @@ impl CommandTools {
         let mut child = command
             .spawn()
             .with_context(|| format!("failed to start {}", request.program))?;
+        let stdin_task = if let Some(input) = &request.stdin {
+            let mut stdin = child.stdin.take().context("failed to open command stdin")?;
+            let input = input.clone();
+            Some(tokio::spawn(async move {
+                stdin
+                    .write_all(input.as_bytes())
+                    .await
+                    .context("failed to write command stdin")
+            }))
+        } else {
+            None
+        };
         let stdout = child.stdout.take().context("failed to capture stdout")?;
         let stderr = child.stderr.take().context("failed to capture stderr")?;
         let stdout_task = tokio::spawn(capture_stream(stdout));
@@ -91,6 +107,9 @@ impl CommandTools {
             }
         };
         let (stdout, stderr) = await_captures(stdout_task, stderr_task).await?;
+        if let Some(stdin_task) = stdin_task {
+            stdin_task.await.context("stdin task failed")??;
+        }
         if let Some(error) = wait_error {
             return Err(error).context("failed to wait for command");
         }
@@ -148,7 +167,7 @@ impl CommandOutput {
     }
 }
 
-pub fn canonicalize(request: &BashRequest, output: &CommandOutput) -> CanonicalCommandOutput {
+pub fn canonicalize(request: &BashCommand, output: &CommandOutput) -> CanonicalCommandOutput {
     let cleaned = format_result(
         &clean_output(&output.stdout),
         &clean_output(&output.stderr),
@@ -170,7 +189,7 @@ pub fn canonicalize(request: &BashRequest, output: &CommandOutput) -> CanonicalC
     }
 }
 
-fn validate_allowlist(request: &BashRequest) -> Result<()> {
+fn validate_allowlist(request: &BashCommand) -> Result<()> {
     if request.program.contains('/') || request.program.contains('\\') {
         bail!("program must be an allowlisted executable name without a path");
     }
@@ -213,10 +232,14 @@ fn validate_allowlist(request: &BashRequest) -> Result<()> {
                 || argument == "--pre-glob"
                 || argument.starts_with("--pre-glob=")
         }),
+        "python3" => request.args == ["-"] && request.stdin.is_some(),
         _ => false,
     };
     if !allowed {
         bail!("command is not in the demo allowlist");
+    }
+    if request.stdin.is_some() && request.program != "python3" {
+        bail!("stdin is supported only for python3 with args [\"-\"]");
     }
     Ok(())
 }
@@ -378,7 +401,39 @@ fn clean_output(text: &str) -> String {
     String::from_utf8_lossy(&cleaned).into_owned()
 }
 
-fn is_cargo_test(request: &BashRequest) -> bool {
+pub fn edit_command(command: &BashCommand, old_text: &str, new_text: &str) -> Result<BashCommand> {
+    if old_text.is_empty() {
+        bail!("old_text must not be empty");
+    }
+    let matches = command
+        .args
+        .iter()
+        .map(|argument| argument.matches(old_text).count())
+        .sum::<usize>()
+        + command
+            .stdin
+            .as_deref()
+            .map_or(0, |input| input.matches(old_text).count());
+    if matches != 1 {
+        bail!(
+            "old_text must occur exactly once across command arguments and stdin; found {matches}"
+        );
+    }
+
+    let mut edited = command.clone();
+    for argument in &mut edited.args {
+        if argument.contains(old_text) {
+            *argument = argument.replacen(old_text, new_text, 1);
+            return Ok(edited);
+        }
+    }
+    if let Some(input) = &mut edited.stdin {
+        *input = input.replacen(old_text, new_text, 1);
+    }
+    Ok(edited)
+}
+
+fn is_cargo_test(request: &BashCommand) -> bool {
     request.program == "cargo" && request.args.first().is_some_and(|arg| arg == "test")
 }
 
@@ -456,11 +511,12 @@ fn normalize(path: &Path) -> Result<PathBuf> {
 mod tests {
     use super::*;
 
-    fn request(program: &str, args: &[&str]) -> BashRequest {
-        BashRequest {
+    fn request(program: &str, args: &[&str]) -> BashCommand {
+        BashCommand {
             program: program.to_string(),
             args: args.iter().map(|arg| (*arg).to_string()).collect(),
             cwd: None,
+            stdin: None,
         }
     }
 
@@ -481,6 +537,19 @@ mod tests {
         assert!(validate_allowlist(&request("git", &["diff", "--output=/tmp/diff"])).is_err());
         assert!(validate_allowlist(&request("git", &["diff", "--output=diff.txt"])).is_err());
         assert!(validate_allowlist(&request("rg", &["--pre=sh", "needle"])).is_err());
+        let mut python = request("python3", &["-"]);
+        python.stdin = Some("print('ok')\n".to_string());
+        assert!(validate_allowlist(&python).is_ok());
+        assert!(validate_allowlist(&request("python3", &["-c", "print('no')"])).is_err());
+    }
+
+    #[test]
+    fn edits_one_command_argument_or_stdin_match() {
+        let mut command = request("python3", &["-"]);
+        command.stdin = Some("print('before')\n".to_string());
+        let edited = edit_command(&command, "before", "after").unwrap();
+        assert_eq!(edited.stdin.as_deref(), Some("print('after')\n"));
+        assert!(edit_command(&command, "missing", "after").is_err());
     }
 
     #[test]

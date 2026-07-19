@@ -27,7 +27,7 @@ For each tool call:
 
 - `original` means the bounded result the current invocation would normally return;
 - `intercepted` means the exact result delivered to you;
-- `savedTokens` is `originalOutputTokens - interceptedOutputTokens`;
+- `savedTokens` includes both full-command input reuse and output reduction; `outputSavingsPercent` isolates output reduction;
 - these instructions and linked documentation are not included in gateway token totals;
 - `full` and `passthrough` commonly save zero;
 - `unchanged`, `diff`, and `compressed` are expected to reduce output when their compact representation is smaller.

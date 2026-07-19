@@ -260,6 +260,49 @@ venv/bin/python -m swebench.harness.run_evaluation \
 
 Evaluation requires Docker and can use substantial disk space and compute.
 
+## Build the frontend benchmark evidence
+
+After evaluating matched baseline and Loop-Whole runs, pair the evaluator outcomes
+with their preserved session dumps:
+
+```bash
+python3 build_benchmark_results.py \
+    --baseline-sessions /path/to/baseline/session-root \
+    --mcp-sessions /path/to/mcp/session-root \
+    --baseline-report /path/to/baseline-report.json \
+    --mcp-report /path/to/mcp-report.json \
+    --model "provider/model"
+```
+
+The session paths may be direct `.loopwhole/sessions` directories or higher-level
+directories containing session JSON recursively. Both current format-v1 dumps and
+legacy dumps without `formatVersion` are accepted. The bridge derives tool-call
+counts, tool-type counts, and delivered tool-context tokens from each session; it
+never infers task success from tool output.
+
+Evaluation reports supply the authoritative `resolved` outcome. Supported report
+forms include aggregate `resolved_ids`/`unresolved_ids` lists, arrays or JSONL of
+`{ "instance_id": "...", "resolved": true }` records, and maps from instance ID
+to an object containing `resolved`. Submitted evaluator errors and empty patches
+remain in the denominator as unresolved outcomes. Baseline and MCP reports must contain the same
+task IDs, with exactly one matching session per task.
+
+By default the command atomically replaces:
+
+```text
+web/src/data/benchmark-results.json
+```
+
+with compact, non-mock frontend data. Prediction JSONL alone is insufficient: run
+the evaluator first and preserve or collect the gateway sessions before temporary
+worktrees are removed. Use `--output` to inspect the generated artifact elsewhere.
+
+Validate the bridge with:
+
+```bash
+python3 -m unittest benchmark/test_build_benchmark_results.py
+```
+
 ## All options
 
 Show the complete command-line reference with:

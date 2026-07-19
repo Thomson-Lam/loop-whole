@@ -22,6 +22,8 @@ server/tests/opencode/run-smoke.sh 02-read-diff
 server/tests/opencode/run-smoke.sh 03-write-edit
 server/tests/opencode/run-smoke.sh 04-bash-unchanged
 server/tests/opencode/run-smoke.sh 05-bash-diff
+server/tests/opencode/run-smoke.sh 06-bash-id-reuse
+server/tests/opencode/run-smoke.sh 07-bash-edit-id
 ```
 
 Run all scenarios:
@@ -47,16 +49,18 @@ The runner performs these steps for every scenario:
 | `02-read-diff` | `full`, `passthrough`, `diff` |
 | `03-write-edit` | `passthrough`, `error`, `passthrough`, `full`, `unchanged` |
 | `04-bash-unchanged` | `compressed`, `unchanged` |
-| `05-bash-diff` | `compressed`, `passthrough`, `diff` |
+| `05-bash-diff` | `compressed`, `passthrough`, then `diff` or `compressed` when the diff is not smaller |
+| `06-bash-id-reuse` | `compressed`, `unchanged` |
+| `07-bash-edit-id` | `compressed`, `compressed`, `unchanged` |
 
 Illustrative measurements from the fixture are:
 
 ```text
-repeated read:       391 original → 21 intercepted tokens
-repeated cargo test:  61 original → 15 intercepted tokens
+repeated read:       391 original → 1 intercepted token (`NoC`)
+repeated cargo test:  61 original → 1 intercepted token (`NoC`)
 ```
 
-Exact counts may change with response wording, compiler output, or fixture changes. Delivery modes and positive unchanged-call savings are the stable assertions. Gateway totals cover serialized tool arguments and tool-result text only; OpenCode prompts, linked documentation, model reasoning, and protocol wrappers are excluded.
+`NoC` means no relevant changes from the previous matching call; Bash commands still execute. Exact original counts may change with compiler output or fixture changes. Delivery modes, the one-token `NoC` estimate, and positive unchanged-call savings are the stable assertions. Gateway totals cover serialized tool arguments and tool-result text only; OpenCode prompts, linked documentation, model reasoning, and protocol wrappers are excluded.
 
 ## Inspect the current scenario log
 

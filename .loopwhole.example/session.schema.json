@@ -5,6 +5,7 @@
   "type": "object",
   "required": ["session", "totals", "toolCalls"],
   "properties": {
+    "formatVersion": { "type": "integer", "const": 1 },
     "session": {
       "type": "object",
       "required": [
@@ -15,7 +16,7 @@
         "tokenCounter"
       ],
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
         "startedAtMs": { "type": "integer" },
         "endedAtMs": { "type": "integer" },
         "workspaceRoot": { "type": "string" },
@@ -37,6 +38,7 @@
       ],
       "properties": {
         "toolInputTokens": { "type": "integer", "minimum": 0 },
+        "originalToolInputTokens": { "type": "integer", "minimum": 0 },
         "originalOutputTokens": { "type": "integer", "minimum": 0 },
         "interceptedOutputTokens": { "type": "integer", "minimum": 0 },
         "withoutRuntimeTokens": { "type": "integer", "minimum": 0 },
@@ -65,8 +67,8 @@
           "intercepted"
         ],
         "properties": {
-          "id": { "type": "integer" },
-          "sequence": { "type": "integer", "minimum": 0 },
+          "id": { "type": "integer", "minimum": 1 },
+          "sequence": { "type": "integer", "minimum": 1 },
           "occurredAtMs": { "type": "integer" },
           "toolName": { "type": "string" },
           "subjectPath": { "type": ["string", "null"] },
@@ -77,15 +79,27 @@
           "baselineHash": { "type": ["string", "null"] },
           "currentHash": { "type": ["string", "null"] },
           "input": {},
-          "original": {
-            "$ref": "#/$defs/toolPayload"
-          },
-          "intercepted": {
-            "$ref": "#/$defs/toolPayload"
-          }
+          "originalInputTokens": { "type": "integer", "minimum": 0 },
+          "original": { "$ref": "#/$defs/toolPayload" },
+          "intercepted": { "$ref": "#/$defs/toolPayload" }
         },
         "additionalProperties": false
       }
+    },
+    "baselines": {
+      "type": "object",
+      "required": ["reads", "commands"],
+      "properties": {
+        "reads": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/readBaseline" }
+        },
+        "commands": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/commandBaseline" }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "$defs": {
@@ -96,6 +110,55 @@
         "text": { "type": "string" },
         "bytes": { "type": "integer", "minimum": 0 },
         "tokens": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "readBaseline": {
+      "type": "object",
+      "required": [
+        "path",
+        "offset",
+        "limit",
+        "text",
+        "viewHash",
+        "fileHash",
+        "wasTruncated"
+      ],
+      "properties": {
+        "path": { "type": "string" },
+        "offset": { "type": "integer", "minimum": 1 },
+        "limit": { "type": ["integer", "null"], "minimum": 0 },
+        "text": { "type": "string" },
+        "viewHash": { "type": "string" },
+        "fileHash": { "type": "string" },
+        "wasTruncated": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "commandBaseline": {
+      "type": "object",
+      "required": [
+        "program",
+        "args",
+        "cwd",
+        "exitCode",
+        "rawOutputHash",
+        "canonicalText",
+        "canonicalHash",
+        "outputWasTruncated",
+        "adapterKind"
+      ],
+      "properties": {
+        "program": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "cwd": { "type": "string" },
+        "stdin": { "type": ["string", "null"] },
+        "exitCode": { "type": "integer" },
+        "rawOutputHash": { "type": "string" },
+        "canonicalText": { "type": "string" },
+        "canonicalHash": { "type": "string" },
+        "outputWasTruncated": { "type": "boolean" },
+        "adapterKind": { "type": "string" }
       },
       "additionalProperties": false
     }

@@ -1,4 +1,5 @@
 {
+  "formatVersion": 1,
   "session": {
     "id": "loopey-demo",
     "startedAtMs": 1774267200000,
@@ -10,13 +11,13 @@
   "totals": {
     "toolInputTokens": 316,
     "originalOutputTokens": 3923,
-    "interceptedOutputTokens": 1722,
+    "interceptedOutputTokens": 1654,
     "withoutRuntimeTokens": 4239,
-    "withRuntimeTokens": 2038,
-    "savedTokens": 2201,
-    "savingsPercent": 51.92,
+    "withRuntimeTokens": 1970,
+    "savedTokens": 2269,
+    "savingsPercent": 53.53,
     "withoutRuntimeContextPercent": 2.12,
-    "withRuntimeContextPercent": 1.02
+    "withRuntimeContextPercent": 0.98
   },
   "toolCalls": [
     {
@@ -118,9 +119,9 @@
         "tokens": 561
       },
       "intercepted": {
-        "text": "[loopey] file unchanged since seq 1 (baseline sha256:62ac7c399d39); 0 bytes re-sent to the model",
-        "bytes": 96,
-        "tokens": 24
+        "text": "NoC",
+        "bytes": 3,
+        "tokens": 1
       }
     },
     {
@@ -144,9 +145,9 @@
         "tokens": 715
       },
       "intercepted": {
-        "text": "[loopey] file unchanged since seq 2 (baseline sha256:d1b2eceefac8); 0 bytes re-sent to the model",
-        "bytes": 96,
-        "tokens": 24
+        "text": "NoC",
+        "bytes": 3,
+        "tokens": 1
       }
     },
     {
@@ -309,10 +310,14 @@
         "tokens": 115
       },
       "intercepted": {
-        "text": "[loopey] command output unchanged since seq 10 (cargo test); 0 bytes re-sent to the model",
-        "bytes": 89,
-        "tokens": 23
+        "text": "NoC",
+        "bytes": 3,
+        "tokens": 1
       }
     }
-  ]
+  ],
+  "baselines": {
+    "reads": [],
+    "commands": []
+  }
 }

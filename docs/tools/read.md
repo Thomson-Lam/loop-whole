@@ -41,7 +41,7 @@ deliveryMode: unchanged
 decisionReason: requested_view_unchanged
 ```
 
-The agent receives a short unchanged marker instead of the full requested view.
+The agent receives exactly `NoC` instead of the full requested view. `NoC` means no relevant changes from the previous matching call.
 
 If the complete file changed but the requested view did not, the reason is:
 
@@ -49,7 +49,7 @@ If the complete file changed but the requested view did not, the reason is:
 requested_view_unchanged_file_changed
 ```
 
-This does not claim that the whole file is unchanged.
+`NoC` still refers only to the requested view; the structured decision reason records that another portion of the file changed.
 
 ### Repeated changed view
 
