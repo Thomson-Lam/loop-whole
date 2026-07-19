@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useLiveSession from "./useLiveSession";
+import LineWaves from "./LineWaves";
 
 const CALL_MS = 2800;
 
@@ -135,7 +136,8 @@ export default function ToolReplay() {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             setStarted(true);
-            if (!reduced) setPlaying(true);
+            // Autoplay disabled per user request:
+            // if (!reduced) setPlaying(true);
             io.unobserve(e.target);
           }
         });
@@ -225,8 +227,25 @@ export default function ToolReplay() {
   const intLines = call.intercepted.text.replace(/\n$/, "").split("\n");
 
   return (
-    <section className="replay" id="replay" ref={sectionRef}>
-      <div className="wrap">
+    <section className="replay" id="replay" ref={sectionRef} style={{ position: "relative" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "400px", zIndex: 0, opacity: 0.6, pointerEvents: "none" }}>
+        <LineWaves
+          speed={0.5}
+          innerLineCount={21}
+          outerLineCount={36}
+          warpIntensity={0.5}
+          rotation={-45}
+          edgeFadeWidth={0}
+          colorCycleSpeed={1}
+          brightness={0.1}
+          color1="#eaff00"
+          color2="#8b8b93"
+          color3="#c8da12"
+          enableMouseInteraction={false}
+          mouseInfluence={2}
+        />
+      </div>
+      <div className="wrap" style={{ position: "relative", zIndex: 1 }}>
         <div className="section-head reveal in">
           <span className="mono kicker">Context-aware tools</span>
           <h2>Your tools remember what the agent has already seen.</h2>
