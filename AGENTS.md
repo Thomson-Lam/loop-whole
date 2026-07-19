@@ -46,7 +46,7 @@ Unit tests are colocated in `server/src/commands.rs`, `server/src/mcp.rs`, `serv
 
 - `web/INDEX.md` — frontend component map and live API integration boundary.
 - `web/src/main.jsx` and `web/src/App.jsx` — React bootstrap and hash-based landing, dashboard, and benchmark routing.
-- `web/src/Landing.jsx` and `web/src/ToolReplay.jsx` — marketing page and bundled demo-session replay.
+- `web/src/Landing.jsx` and `web/src/ToolReplay.jsx` — marketing page and click-driven static tool walkthrough.
 - `web/src/Dashboard.jsx` — bundled per-call original/intercepted comparison and cumulative context metrics.
 - `web/src/Benchmarks.jsx` and `web/src/data/benchmark-results.json` — paired SWE-bench non-regression summary, selectable task ledger, and mock session-shaped fixture.
 - `web/src/api.js` and `web/src/useLiveSession.js` — current-session/detail hydration and polling.

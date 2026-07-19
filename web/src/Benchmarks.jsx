@@ -136,11 +136,11 @@ export default function Benchmarks() {
       <main className="benchmark-main">
         <section className="benchmark-hero">
           <div className="benchmark-copy">
-            <span className={`mono benchmark-eyebrow ${benchmarkData.mock ? "mock" : ""}`}>
-              {benchmarkData.mock
-                ? "MOCK DATA: REMOVE"
-                : `${benchmarkData.benchmark.name} · non-regression`}
-            </span>
+            {!benchmarkData.mock && (
+              <span className="mono benchmark-eyebrow">
+                {benchmarkData.benchmark.name} · non-regression
+              </span>
+            )}
             <h1>
               {summary.resolvedDelta >= 0
                 ? "Task completion held."

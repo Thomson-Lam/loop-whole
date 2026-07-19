@@ -14,6 +14,12 @@ function fmt(n) {
   return Number(n).toLocaleString();
 }
 
+function fmtPct(n) {
+  return Math.max(0, Number(n) || 0).toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  });
+}
+
 export default function Dashboard() {
   const { session, error } = useLiveSession();
   const calls = useMemo(
@@ -51,13 +57,15 @@ export default function Dashboard() {
 
   if (!session) {
     return (
-      <div className="dash pane-body">
+      <div className="dash pane-body dash-empty">
         {error ? `API unavailable: ${error.message}` : "Loading session…"}
       </div>
     );
   }
   if (!call) {
-    return <div className="dash pane-body">Waiting for tool calls…</div>;
+    return (
+      <div className="dash pane-body dash-empty">Waiting for tool calls…</div>
+    );
   }
 
   const totals = session.totals;
@@ -94,7 +102,7 @@ export default function Dashboard() {
           </nav>
         </div>
         <div className="savings">
-          <div className="pct">{totals.savingsPercent}%</div>
+          <div className="pct">{fmtPct(totals.savingsPercent)}%</div>
           <div className="saved mono">{fmt(totals.savedTokens)} tokens saved</div>
         </div>
       </header>
@@ -201,7 +209,7 @@ export default function Dashboard() {
 
             <div className="popup-foot">
               <span className="reduction">
-                {fmt(totals.savedTokens)} tokens saved ({totals.savingsPercent}%)
+                {fmt(totals.savedTokens)} tokens saved ({fmtPct(totals.savingsPercent)}%)
               </span>
             </div>
           </div>
