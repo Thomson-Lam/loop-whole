@@ -80,3 +80,4 @@ npx react-grab@latest stop
 
 - The watcher reads the clipboard on the machine it runs on — run it on the same
   machine as the browser, not over SSH or in a remote container.
+

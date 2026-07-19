@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import session from "./data/demo-session.json";
+import useLiveSession from "./useLiveSession";
 
 const CALL_MS = 2800;
 
@@ -28,7 +28,7 @@ const TOOL_META = {
     label: "Bash",
     icon: "»_",
     statement: "Execute again, then return only the relevant output changes.",
-    note: "Bash always executes — it is never cached or skipped. Loopey canonicalizes the output, then compares it with the previous run.",
+    note: "Bash always executes — it is never cached or skipped. Loop-Whole canonicalizes the output, then compares it with the previous run.",
   },
 };
 
@@ -50,7 +50,7 @@ function captionFor(call) {
   if (deliveryMode === "unchanged" && toolName === "bash")
     return "Command ran again and returned the identical result — only a short marker is delivered.";
   if (deliveryMode === "unchanged")
-    return "Already delivered identically — Loopey returns a one-line marker instead of re-sending the file.";
+    return "Already delivered identically — Loop-Whole returns a one-line marker instead of re-sending the file.";
   if (deliveryMode === "diff")
     return "Changed since the stored baseline — delivered as a minimal diff of just the changed lines.";
   if (deliveryMode === "compressed")
@@ -64,7 +64,7 @@ function captionFor(call) {
 
 function classifyLine(line) {
   if (line.startsWith("@@")) return "rl-hunk";
-  if (line.startsWith("[loopey]")) return "rl-loopey";
+  if (line.startsWith("[loop-whole]")) return "rl-loop-whole";
   if (line.startsWith("+")) return "rl-add";
   if (line.startsWith("-")) return "rl-del";
   return "rl-ctx";
@@ -111,9 +111,13 @@ function useAnimatedNumber(target, active, reduced, duration = 650) {
 }
 
 export default function ToolReplay() {
+  const { session, error } = useLiveSession();
   const calls = useMemo(
-    () => [...session.toolCalls].sort((a, b) => a.sequence - b.sequence),
-    []
+    () =>
+      [...(session?.toolCalls ?? [])].sort(
+        (a, b) => a.sequence - b.sequence
+      ),
+    [session]
   );
 
   const reduced = usePrefersReducedMotion();
@@ -156,9 +160,13 @@ export default function ToolReplay() {
     return () => clearTimeout(id);
   }, [playing, index, calls.length, reduced]);
 
+  useEffect(() => {
+    setIndex((i) => Math.max(0, Math.min(i, calls.length - 1)));
+  }, [calls.length]);
+
   const call = calls[index];
-  const origTok = call.original.tokens;
-  const intTok = call.intercepted.tokens;
+  const origTok = call?.original.tokens ?? 0;
+  const intTok = call?.intercepted.tokens ?? 0;
   const savedTok = origTok - intTok;
   const savedPct = origTok > 0 ? Math.round((savedTok / origTok) * 100) : 0;
   const keptRatio = origTok > 0 ? Math.max(intTok / origTok, 0.03) : 1;
@@ -168,7 +176,7 @@ export default function ToolReplay() {
   const cum = useMemo(() => {
     let o = 0;
     let it = 0;
-    for (let i = 0; i <= index; i++) {
+    for (let i = 0; i <= index && i < calls.length; i++) {
       o += calls[i].original.tokens;
       it += calls[i].intercepted.tokens;
     }
@@ -177,6 +185,23 @@ export default function ToolReplay() {
 
   const animInt = useAnimatedNumber(intTok, started, reduced);
   const animCum = useAnimatedNumber(cum, started, reduced);
+
+  if (!session) {
+    return (
+      <section className="replay">
+        <div className="wrap">
+          {error ? `API unavailable: ${error.message}` : "Loading session…"}
+        </div>
+      </section>
+    );
+  }
+  if (!call) {
+    return (
+      <section className="replay">
+        <div className="wrap">Waiting for tool calls…</div>
+      </section>
+    );
+  }
 
   const atStart = index === 0;
   const atEnd = index === calls.length - 1;
@@ -206,7 +231,7 @@ export default function ToolReplay() {
           <span className="mono kicker">Context-aware tools</span>
           <h2>Your tools remember what the agent has already seen.</h2>
           <p>
-            Loopey runs the real operation, keeps the original evidence, and
+            Loop-Whole runs the real operation, keeps the original evidence, and
             sends the smallest safe result back to the model. Watch a real
             session replay — <b>left is what the tool returned</b>,{" "}
             <b>right is what the model received</b>.
@@ -391,11 +416,13 @@ export default function ToolReplay() {
         </div>
 
         <p className="replay-fine mono">
-          Illustrative replay from the smoke fixture. Token counts are estimates
-          (⌈characters ÷ 4⌉), not model-tokenizer tokens. Loopey reduces future
-          tool responses; it does not rewrite existing model history.
+          Live replay from the current gateway session. Token counts are
+          estimates (⌈characters ÷ 4⌉), not model-tokenizer tokens. Loop-Whole
+          reduces future tool responses; it does not rewrite existing model
+          history.
         </p>
       </div>
     </section>
   );
 }
+

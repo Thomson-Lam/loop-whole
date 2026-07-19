@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import session from "./data/demo-session.json";
+import useLiveSession from "./useLiveSession";
 
 const MODE_LABEL = {
   full: "FULL",
@@ -15,12 +15,13 @@ function fmt(n) {
 }
 
 export default function Dashboard() {
-  const totals = session.totals;
-  const meta = session.session;
-
+  const { session, error } = useLiveSession();
   const calls = useMemo(
-    () => [...session.toolCalls].sort((a, b) => a.sequence - b.sequence),
-    []
+    () =>
+      [...(session?.toolCalls ?? [])].sort(
+        (a, b) => a.sequence - b.sequence
+      ),
+    [session]
   );
 
   const [index, setIndex] = useState(0);
@@ -29,7 +30,8 @@ export default function Dashboard() {
   const call = calls[index];
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
-  const next = () => setIndex((i) => Math.min(calls.length - 1, i + 1));
+  const next = () =>
+    setIndex((i) => Math.max(0, Math.min(calls.length - 1, i + 1)));
 
   useEffect(() => {
     const onKey = (e) => {
@@ -42,6 +44,23 @@ export default function Dashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [calls.length]);
 
+  useEffect(() => {
+    setIndex((i) => Math.max(0, Math.min(i, calls.length - 1)));
+  }, [calls.length]);
+
+  if (!session) {
+    return (
+      <div className="dash pane-body">
+        {error ? `API unavailable: ${error.message}` : "Loading session…"}
+      </div>
+    );
+  }
+  if (!call) {
+    return <div className="dash pane-body">Waiting for tool calls…</div>;
+  }
+
+  const totals = session.totals;
+  const meta = session.session;
   const origTok = call.original.tokens;
   const intTok = call.intercepted.tokens;
   const savedTok = origTok - intTok;
@@ -56,7 +75,7 @@ export default function Dashboard() {
       <header className="dash-top">
         <div className="dash-left">
           <a className="brand" href="#/" title="Back to home">
-            <span className="mark">✳</span> Loopey
+            <span className="mark">✳</span> Loop-Whole
           </a>
           <div className="tabs">
             <button className="tab active">Token</button>
@@ -95,7 +114,7 @@ export default function Dashboard() {
 
         <section className="pane">
           <div className="pane-head">
-            <span className="mono">Intercepted (Loopey runtime)</span>
+            <span className="mono">Intercepted (Loop-Whole runtime)</span>
             <span className="tok">
               {fmt(intTok)} tok
               {savedTok > 0 && (
@@ -143,7 +162,7 @@ export default function Dashboard() {
             </p>
 
             <div className="ctx-row">
-              <div className="ctx-label mono">Without Loopey</div>
+              <div className="ctx-label mono">Without Loop-Whole</div>
               <div className="ctx-track">
                 <div
                   className="ctx-fill without"
@@ -156,7 +175,7 @@ export default function Dashboard() {
             </div>
 
             <div className="ctx-row">
-              <div className="ctx-label mono">With Loopey</div>
+              <div className="ctx-label mono">With Loop-Whole</div>
               <div className="ctx-track">
                 <div
                   className="ctx-fill with"
@@ -179,3 +198,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

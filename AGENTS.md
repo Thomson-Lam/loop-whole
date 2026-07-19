@@ -25,7 +25,10 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `README.md` — Setup, MCP configuration, API usage, session dump schema, and implementation status.
 - `INDEX.md` — Root navigation map for backend, frontend, documentation, tests, and runtime boundaries.
 - `web/INDEX.md` — Frontend component map and live backend API integration boundary.
+- `web/src/api.js` — Current-session and tool-call detail API hydration.
+- `web/src/useLiveSession.js` — Shared React polling hook for live session consumers.
 - `.loopwhole.example/session.schema.json` — Committed reference schema for persisted session dumps.
+- `.env.example` — Template for local secrets (`GEMINI_API_KEY`); copy to `.env` (gitignored).
 - `server/tests/context.md` — Entry point for local MCP smoke testing.
 - `server/tests/opencode/` — Isolated OpenCode configuration, fixture, instruction prompts, and smoke runner.
 - `docs/tools/` — Per-tool delivery, token-reduction, and diagnosis documentation.
