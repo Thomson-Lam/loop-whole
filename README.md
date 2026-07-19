@@ -1,6 +1,6 @@
 # Warp MCP Gateway
 
-A Rust MCP server that exposes context-aware `read`, create-only `write`, exact `edit`, and allowlisted command tools, keeps tool-call evidence and runtime baselines, and writes resumable session JSON on shutdown.
+A Rust MCP server that exposes context-aware `read`, create-only `write`, exact `edit`, reusable allowlisted `bash`, and `bash_edit` tools, keeps tool-call evidence and runtime baselines, and writes resumable session JSON on shutdown.
 
 Repeated reads and commands return unchanged markers or progressive diffs. Command output is bounded and known `cargo test` output is projected into a compact result.
 
@@ -142,12 +142,26 @@ Expected startup order:
 ```
 
 - Executes programs directly without shell expansion, pipes, redirects, or chaining.
-- Allows selected `cargo`, `npm`, read-only `git`, `grep`, and `rg` commands.
+- Allows selected `cargo`, `npm`, read-only `git`, `grep`, and `rg` commands, plus `python3` scripts supplied as stdin with `args: ["-"]`.
+- A completed full call returns a command ID; rerun it with `{ "command_id": "cmd-..." }` to avoid resending the command.
 - Rejects executable paths, unsupported command families, absolute path arguments, and parent traversal.
 - Times out after 120 seconds and retains at most 256KB from the head and tail of each output stream while hashing the complete drained output.
 - Repeated exact commands are always executed, then compared with the previous result for unchanged or progressive-diff delivery.
-- The allowlist is a demo policy, not an operating-system sandbox; allowed programs and build scripts retain the process user's permissions.
+- The allowlist is a demo policy, not an operating-system sandbox; allowed programs, Python scripts, and build scripts retain the process user's permissions.
 - Detailed reduction behavior: `docs/tools/bash.md`.
+
+### `bash_edit`
+
+```json
+{
+  "command_id": "cmd-...",
+  "old_text": "*.rs",
+  "new_text": "*.toml"
+}
+```
+
+- Replaces one exact unique occurrence across a stored command's arguments and stdin.
+- Executes the edited command under the same allowlist and returns its new reusable command ID.
 
 ## Dashboard API
 
@@ -200,20 +214,20 @@ estimated tokens = ceil(character count / 4)
 
 The session comparison covers tool arguments and tool results only. It excludes system prompts, repository instruction files, user messages, assistant prose, and reasoning.
 
-Original payloads contain the bounded result of the current tool execution. Intercepted payloads contain the exact full, compressed, unchanged, or diff result delivered to the model.
+For command-ID and `bash_edit` calls, the without-runtime input estimate is the equivalent full command DTO while the with-runtime input estimate is the actual compact request. Original payloads contain the bounded result of the current tool execution. Intercepted payloads contain the exact full, compressed, unchanged, or diff result delivered to the model.
 
 ## Current implementation status
 
 Implemented:
 
 - MCP stdio lifecycle and tool discovery;
-- context-aware `read`, create-only `write`, exact `edit`, and allowlisted `bash` tools;
+- context-aware `read`, create-only `write`, exact `edit`, reusable allowlisted `bash`, and `bash_edit` tools;
 - workspace path enforcement for file tools and command working directories;
 - bounded read and command output;
 - read-view and repeated-command baselines;
 - durable session resume with prior calls, counters, and comparison baselines;
 - unchanged and progressive-diff delivery;
-- generic command normalization and a conservative `cargo test` projection;
+- generic command normalization, a conservative `cargo test` projection, reusable Python stdin, and exact stored-command edits;
 - session-scoped original/intercepted payload storage;
 - automatic session JSON dump on shutdown;
 - token-estimate totals;
@@ -225,8 +239,7 @@ Not implemented yet:
 - broader command DTO adapters;
 - operating-system command sandboxing;
 - filesystem change watching or prompt injection;
-- silent-failure signals;
-- frontend UI.
+- silent-failure signals.
 
 ## Session dump schema
 
@@ -251,6 +264,7 @@ Shape:
   },
   "totals": {
     "toolInputTokens": 1200,
+    "originalToolInputTokens": 1200,
     "originalOutputTokens": 12420,
     "interceptedOutputTokens": 4610,
     "withoutRuntimeTokens": 13620,
@@ -274,6 +288,7 @@ Shape:
       "baselineHash": null,
       "currentHash": "8fb09291be4f2042",
       "input": { "path": "src/main.rs" },
+      "originalInputTokens": 7,
       "original": { "text": "...", "bytes": 1234, "tokens": 309 },
       "intercepted": { "text": "...", "bytes": 1234, "tokens": 309 }
     }
@@ -310,10 +325,12 @@ An isolated fixture and instruction-driven runner live in `server/tests/opencode
 ```bash
 server/tests/opencode/run-smoke.sh 01-read-unchanged
 server/tests/opencode/run-smoke.sh 04-bash-unchanged
+server/tests/opencode/run-smoke.sh 06-bash-id-reuse
+server/tests/opencode/run-smoke.sh 07-bash-edit-id
 server/tests/opencode/run-smoke.sh all
 ```
 
-Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call log metrics plus shutdown session totals. See `server/tests/opencode/README.md`.
+Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call log metrics plus shutdown session totals. The command-ID scenarios also fail automatically unless the agent uses the returned IDs correctly and produces positive measured token savings. See `server/tests/opencode/README.md`.
 
 ## Development checks
 

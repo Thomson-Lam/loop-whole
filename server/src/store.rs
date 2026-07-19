@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::schema::{
-    DeliveryDecision, NewToolCall, SessionSnapshot, SessionSummary, TokenTotals, ToolCallDetail,
-    ToolCallSummary, ToolPayload,
+    BashCommand, DeliveryDecision, NewToolCall, SessionSnapshot, SessionSummary, TokenTotals,
+    ToolCallDetail, ToolCallSummary, ToolPayload,
 };
 
 #[derive(Debug, Clone)]
@@ -50,6 +50,7 @@ pub struct CommandBaselineKey {
     pub program: String,
     pub args: Vec<String>,
     pub cwd: String,
+    pub stdin: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -109,6 +110,8 @@ pub struct PersistedToolCall {
     pub baseline_hash: Option<String>,
     pub current_hash: Option<String>,
     pub input: serde_json::Value,
+    #[serde(default)]
+    pub original_input_tokens: Option<u64>,
     pub original: ToolPayload,
     pub intercepted: ToolPayload,
 }
@@ -140,6 +143,8 @@ pub struct PersistedCommandBaseline {
     pub program: String,
     pub args: Vec<String>,
     pub cwd: String,
+    #[serde(default)]
+    pub stdin: Option<String>,
     pub exit_code: i32,
     pub raw_output_hash: String,
     pub canonical_text: String,
@@ -244,6 +249,9 @@ impl SessionStore {
                     original_text: call.original.text,
                     intercepted_text: call.intercepted.text,
                     input_tokens: estimate_tokens(&input_text),
+                    original_input_tokens: call
+                        .original_input_tokens
+                        .unwrap_or_else(|| estimate_tokens(&input_text)),
                     original_output_tokens: call.original.tokens,
                     intercepted_output_tokens: call.intercepted.tokens,
                     original_bytes: call.original.bytes,
@@ -278,6 +286,7 @@ impl SessionStore {
                 program: baseline.program,
                 args: baseline.args,
                 cwd: baseline.cwd,
+                stdin: baseline.stdin,
             };
             let value = CommandBaseline {
                 exit_code: baseline.exit_code,
@@ -362,12 +371,42 @@ impl SessionStore {
             .insert(key, baseline);
     }
 
+    pub fn command_by_id(&self, command_id: &str) -> Option<BashCommand> {
+        let store = self.inner.read().expect("session store lock poisoned");
+        // ponytail: session command counts are tiny; add an ID index only if lookup volume grows.
+        let mut matches = store
+            .command_baselines
+            .keys()
+            .filter(|key| command_id_for_key(key) == command_id);
+        let key = matches.next()?;
+        if matches.next().is_some() {
+            return None;
+        }
+        let relative_cwd = Path::new(&key.cwd)
+            .strip_prefix(&store.session.workspace_root)
+            .ok()
+            .filter(|path| !path.as_os_str().is_empty())
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|| ".".to_string());
+        Some(BashCommand {
+            program: key.program.clone(),
+            args: key.args.clone(),
+            cwd: Some(relative_cwd),
+            stdin: key.stdin.clone(),
+        })
+    }
+
     pub fn snapshot(&self) -> SessionSnapshot {
         let store = self.inner.read().expect("session store lock poisoned");
         let input = store
             .tool_calls
             .iter()
             .map(|stored| stored.call.input_tokens)
+            .sum::<u64>();
+        let original_input = store
+            .tool_calls
+            .iter()
+            .map(|stored| stored.call.original_input_tokens)
             .sum::<u64>();
         let original = store
             .tool_calls
@@ -379,7 +418,7 @@ impl SessionStore {
             .iter()
             .map(|stored| stored.call.intercepted_output_tokens)
             .sum::<u64>();
-        let without_runtime = input + original;
+        let without_runtime = original_input + original;
         let with_runtime = input + intercepted;
         let saved = without_runtime as i64 - with_runtime as i64;
         let context_window = store.session.context_window_tokens;
@@ -388,6 +427,7 @@ impl SessionStore {
             session: store.session.clone(),
             totals: TokenTotals {
                 tool_input_tokens: input,
+                original_tool_input_tokens: original_input,
                 original_output_tokens: original,
                 intercepted_output_tokens: intercepted,
                 without_runtime_tokens: without_runtime,
@@ -411,10 +451,13 @@ impl SessionStore {
                     status: stored.call.status.clone(),
                     delivery_mode: stored.call.delivery_mode.clone(),
                     input_tokens: stored.call.input_tokens,
+                    original_input_tokens: stored.call.original_input_tokens,
                     original_output_tokens: stored.call.original_output_tokens,
                     intercepted_output_tokens: stored.call.intercepted_output_tokens,
-                    saved_tokens: stored.call.original_output_tokens as i64
-                        - stored.call.intercepted_output_tokens as i64,
+                    saved_tokens: (stored.call.original_input_tokens
+                        + stored.call.original_output_tokens)
+                        as i64
+                        - (stored.call.input_tokens + stored.call.intercepted_output_tokens) as i64,
                 })
                 .collect(),
         }
@@ -472,6 +515,8 @@ impl SessionStore {
             status: call.status.clone(),
             duration_ms: call.duration_ms,
             input: call.input.clone(),
+            input_tokens: call.input_tokens,
+            original_input_tokens: call.original_input_tokens,
             decision: DeliveryDecision {
                 mode: call.delivery_mode.clone(),
                 reason: call.decision_reason.clone(),
@@ -498,6 +543,11 @@ impl SessionStore {
             .iter()
             .map(|stored| stored.call.input_tokens)
             .sum::<u64>();
+        let original_input = store
+            .tool_calls
+            .iter()
+            .map(|stored| stored.call.original_input_tokens)
+            .sum::<u64>();
         let original = store
             .tool_calls
             .iter()
@@ -508,7 +558,7 @@ impl SessionStore {
             .iter()
             .map(|stored| stored.call.intercepted_output_tokens)
             .sum::<u64>();
-        let without_runtime = input + original;
+        let without_runtime = original_input + original;
         let with_runtime = input + intercepted;
         let saved = without_runtime as i64 - with_runtime as i64;
         let context_window = store.session.context_window_tokens;
@@ -538,6 +588,7 @@ impl SessionStore {
                 program: key.program.clone(),
                 args: key.args.clone(),
                 cwd: key.cwd.clone(),
+                stdin: key.stdin.clone(),
                 exit_code: baseline.exit_code,
                 raw_output_hash: baseline.raw_output_hash.clone(),
                 canonical_text: baseline.canonical_text.clone(),
@@ -551,6 +602,7 @@ impl SessionStore {
                 .cmp(&right.program)
                 .then(left.args.cmp(&right.args))
                 .then(left.cwd.cmp(&right.cwd))
+                .then(left.stdin.cmp(&right.stdin))
         });
 
         PersistedSession {
@@ -565,6 +617,7 @@ impl SessionStore {
             },
             totals: TokenTotals {
                 tool_input_tokens: input,
+                original_tool_input_tokens: original_input,
                 original_output_tokens: original,
                 intercepted_output_tokens: intercepted,
                 without_runtime_tokens: without_runtime,
@@ -592,6 +645,7 @@ impl SessionStore {
                     baseline_hash: stored.call.baseline_hash.clone(),
                     current_hash: stored.call.current_hash.clone(),
                     input: stored.call.input.clone(),
+                    original_input_tokens: Some(stored.call.original_input_tokens),
                     original: ToolPayload {
                         text: stored.call.original_text.clone(),
                         bytes: stored.call.original_bytes,
@@ -607,6 +661,32 @@ impl SessionStore {
             baselines: PersistedBaselines { reads, commands },
         }
     }
+}
+
+pub fn command_id_for_key(key: &CommandBaselineKey) -> String {
+    fn write(hash: &mut u64, bytes: &[u8]) {
+        for byte in bytes {
+            *hash ^= u64::from(*byte);
+            *hash = hash.wrapping_mul(0x100000001b3);
+        }
+    }
+    fn write_text(hash: &mut u64, text: &str) {
+        write(hash, &(text.len() as u64).to_le_bytes());
+        write(hash, text.as_bytes());
+    }
+
+    let mut hash = 0xcbf29ce484222325;
+    write_text(&mut hash, &key.program);
+    write(&mut hash, &(key.args.len() as u64).to_le_bytes());
+    for argument in &key.args {
+        write_text(&mut hash, argument);
+    }
+    write_text(&mut hash, &key.cwd);
+    write(&mut hash, &[u8::from(key.stdin.is_some())]);
+    if let Some(stdin) = &key.stdin {
+        write_text(&mut hash, stdin);
+    }
+    format!("cmd-{hash:016x}")
 }
 
 fn validate_baseline_path(path: &str, expected_root: &Path, label: &str) -> Result<()> {
@@ -676,6 +756,7 @@ mod tests {
             original_text: "12345678".to_string(),
             intercepted_text: "1234".to_string(),
             input_tokens: 2,
+            original_input_tokens: 2,
             original_output_tokens: 2,
             intercepted_output_tokens: 1,
             original_bytes: 8,
@@ -747,6 +828,7 @@ mod tests {
             program: "cargo".to_string(),
             args: vec!["test".to_string()],
             cwd: root.to_string_lossy().into_owned(),
+            stdin: None,
         };
         store.set_command_baseline(
             command_key.clone(),
@@ -775,6 +857,10 @@ mod tests {
                 .canonical_text,
             "ok"
         );
+        let command_id = command_id_for_key(&command_key);
+        let restored_command = loaded.command_by_id(&command_id).unwrap();
+        assert_eq!(restored_command.program, "cargo");
+        assert_eq!(restored_command.args, ["test"]);
         assert_eq!(loaded.record(sample_call(next_sequence)), 2);
         assert_eq!(loaded.tool_call(2).unwrap().sequence, 4);
     }
@@ -852,6 +938,7 @@ mod tests {
             original_text: "content".to_string(),
             intercepted_text: "content".to_string(),
             input_tokens: 4,
+            original_input_tokens: 4,
             original_output_tokens: 2,
             intercepted_output_tokens: 2,
             original_bytes: 7,

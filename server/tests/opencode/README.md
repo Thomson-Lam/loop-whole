@@ -11,6 +11,7 @@ Detailed manual reproduction and diagnosis instructions live at `docs/tests/manu
 - `cargo`
 - `jq`
 - `opencode` with a configured model/provider
+- `python3` for the command-ID scenarios
 
 ## Run one scenario
 
@@ -20,6 +21,8 @@ server/tests/opencode/run-smoke.sh 02-read-diff
 server/tests/opencode/run-smoke.sh 03-write-edit
 server/tests/opencode/run-smoke.sh 04-bash-unchanged
 server/tests/opencode/run-smoke.sh 05-bash-diff
+server/tests/opencode/run-smoke.sh 06-bash-id-reuse
+server/tests/opencode/run-smoke.sh 07-bash-edit-id
 ```
 
 ## Run every scenario
@@ -30,14 +33,15 @@ server/tests/opencode/run-smoke.sh all
 
 The script passes the selected Markdown file from `instructions/` to `opencode run`, injects an absolute local MCP configuration, and prints:
 
-- one token-accounting row per tool call from `workspace/logs/<session>.log`;
-- cumulative totals from `workspace/.loopwhole/sessions/<session>.json`.
+- one token-accounting row per tool call from `workspace/logs/<session>.log`, including actual/original input and input savings;
+- cumulative totals from `workspace/.loopwhole/sessions/<session>.json`;
+- automated metric and command-ID assertions for scenarios 06 and 07.
 
 A useful successful row looks like:
 
 ```text
-sequence  tool  mode       original  intercepted  saved  output_savings_pct
-2         read  unchanged  400       24           376    94.0
+sequence  tool  mode       input  original_input  input_saved  original_output  intercepted_output  total_saved
+2         bash  unchanged  10     58              48           900              14                  934
 ```
 
 Token counts use the gateway's `ceil(characters / 4)` estimate. Negative savings are possible and should be investigated rather than hidden.
@@ -47,8 +51,10 @@ Token counts use the gateway's `ceil(characters / 4)` estimate. Negative savings
 - `01-read-unchanged.md` — first read versus an identical repeated read.
 - `02-read-diff.md` — full read, exact edit, then compact changed read.
 - `03-write-edit.md` — create-only write, overwrite rejection, exact edit, and unchanged read.
-- `04-bash-unchanged.md` — execute the same Cargo test command twice.
-- `05-bash-diff.md` — change a passing test to failing between identical Cargo commands.
+- `04-bash-unchanged.md` — execute a Cargo test command, then rerun it by ID.
+- `05-bash-diff.md` — change a passing test to failing before rerunning the command by ID.
+- `06-bash-id-reuse.md` — prove a real agent can reuse a Python command ID with positive input and output savings.
+- `07-bash-edit-id.md` — prove a real agent can edit a stored Python command, receive a new ID, and reuse it with positive total savings.
 
 ## Direct log inspection
 
@@ -61,7 +67,9 @@ grep '^{' server/tests/opencode/workspace/logs/opencode-*.log | jq .
 Each tool-call JSON line contains:
 
 - delivery mode and reason;
-- input, original-output, and intercepted-output token estimates;
+- actual and counterfactual full-command input token estimates;
+- input tokens saved;
+- original-output and intercepted-output token estimates;
 - saved tokens;
 - context and output savings percentages;
 - byte counts, duration, and baseline/current hashes.

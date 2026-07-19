@@ -17,7 +17,7 @@ Perform exactly these steps:
    assert_eq!(status(), "broken");
    ```
 
-3. Call Loopwhole `bash` again with exactly `program: cargo`, `args: ["test", "--quiet"]`, and `cwd: .`.
+3. Call Loopwhole `bash` again using only the `command_id` returned by step 1.
 4. Stop. Report whether the second command returned a progressive change showing the newly failing test.
 
 Expected decisions: bash `compressed`, edit `passthrough`, bash `diff`. The second Cargo invocation must execute and fail; the diff should preserve the failure information.

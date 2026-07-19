@@ -4,7 +4,7 @@ import useLiveSession from "./useLiveSession";
 
 const CALL_MS = 2800;
 
-const TOOL_ORDER = ["read", "edit", "write", "bash"];
+const TOOL_ORDER = ["read", "edit", "write", "bash", "bash_edit"];
 
 const TOOL_META = {
   read: {
@@ -30,6 +30,12 @@ const TOOL_META = {
     icon: "»_",
     statement: "Execute again, then return only the relevant output changes.",
     note: "Bash always executes — it is never cached or skipped. Loop-Whole canonicalizes the output, then compares it with the previous run.",
+  },
+  bash_edit: {
+    label: "Command edit",
+    icon: "⌁",
+    statement: "Change one stored command fragment instead of resending it.",
+    note: "Command edit applies one exact replacement to saved arguments or stdin, executes the result, and returns a new reusable command ID.",
   },
 };
 
@@ -171,6 +177,9 @@ export default function ToolReplay() {
   const intTok = call?.intercepted.tokens ?? 0;
   const savedTok = origTok - intTok;
   const savedPct = origTok > 0 ? Math.round((savedTok / origTok) * 100) : 0;
+  const inputSaved =
+    (call?.originalInputTokens ?? call?.inputTokens ?? 0) -
+    (call?.inputTokens ?? 0);
   const keptRatio = origTok > 0 ? Math.max(intTok / origTok, 0.03) : 1;
 
   // Cumulative tool-output savings through the current call (output tokens only,
@@ -262,7 +271,9 @@ export default function ToolReplay() {
           role="tablist"
           aria-label="Tool demonstrations"
         >
-          {TOOL_ORDER.map((tool) => {
+          {TOOL_ORDER.filter((tool) =>
+            calls.some((candidate) => candidate.toolName === tool)
+          ).map((tool) => {
             const m = TOOL_META[tool];
             if (!m) return null;
             const active = call.toolName === tool;
@@ -299,6 +310,9 @@ export default function ToolReplay() {
               </span>
             </div>
             <div className="replay-bar-right mono">
+              {inputSaved > 0 && (
+                <span className="reduction">input −{inputSaved} tok · </span>
+              )}
               Step {index + 1} / {calls.length}
             </div>
           </div>
@@ -306,7 +320,7 @@ export default function ToolReplay() {
           <div className="replay-split">
             <div className="replay-pane">
               <div className="replay-pane-head">
-                <span className="mono">Original · agent → tool</span>
+                <span className="mono">Original tool output</span>
                 <span className="replay-tok mono">{origTok} tok</span>
               </div>
               <pre className="replay-code" key={`o-${index}`}>
@@ -328,7 +342,7 @@ export default function ToolReplay() {
 
             <div className="replay-pane replay-pane-int">
               <div className="replay-pane-head">
-                <span className="mono">Delivered to the model</span>
+                <span className="mono">Delivered to model</span>
                 <span className="replay-tok mono">
                   {Math.round(animInt)} tok
                   {savedTok > 0 && (

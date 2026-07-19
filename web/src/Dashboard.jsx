@@ -66,6 +66,9 @@ export default function Dashboard() {
   const intTok = call.intercepted.tokens;
   const savedTok = origTok - intTok;
   const savedPct = origTok > 0 ? Math.round((savedTok / origTok) * 100) : 0;
+  const inputSaved =
+    (call.originalInputTokens ?? call.inputTokens ?? 0) -
+    (call.inputTokens ?? 0);
 
   const ctx = meta.contextWindowTokens || 0;
   const withoutPct = ctx ? (totals.withoutRuntimeTokens / ctx) * 100 : 0;
@@ -105,6 +108,9 @@ export default function Dashboard() {
           <span className="subject">{call.subjectPath || "—"}</span>
         </div>
         <div className="callbar-right mono">
+          {inputSaved > 0 && (
+            <span className="reduction">input −{fmt(inputSaved)} tok · </span>
+          )}
           Call {index + 1} / {calls.length}
         </div>
       </div>
@@ -112,7 +118,7 @@ export default function Dashboard() {
       <div className="split">
         <section className="pane">
           <div className="pane-head">
-            <span className="mono">Original (agent → tool)</span>
+            <span className="mono">Original tool output</span>
             <span className="tok">{fmt(origTok)} tok</span>
           </div>
           <pre className="pane-body">{call.original.text}</pre>
@@ -120,7 +126,7 @@ export default function Dashboard() {
 
         <section className="pane">
           <div className="pane-head">
-            <span className="mono">Intercepted (Loop-Whole runtime)</span>
+            <span className="mono">Delivered to model</span>
             <span className="tok">
               {fmt(intTok)} tok
               {savedTok > 0 && (

@@ -18,6 +18,7 @@ pub struct NewToolCall {
     pub original_text: String,
     pub intercepted_text: String,
     pub input_tokens: u64,
+    pub original_input_tokens: u64,
     pub original_output_tokens: u64,
     pub intercepted_output_tokens: u64,
     pub original_bytes: u64,
@@ -46,6 +47,8 @@ pub struct SessionSummary {
 #[serde(rename_all = "camelCase")]
 pub struct TokenTotals {
     pub tool_input_tokens: u64,
+    #[serde(default)]
+    pub original_tool_input_tokens: u64,
     pub original_output_tokens: u64,
     pub intercepted_output_tokens: u64,
     pub without_runtime_tokens: u64,
@@ -67,6 +70,7 @@ pub struct ToolCallSummary {
     pub status: String,
     pub delivery_mode: String,
     pub input_tokens: u64,
+    pub original_input_tokens: u64,
     pub original_output_tokens: u64,
     pub intercepted_output_tokens: u64,
     pub saved_tokens: i64,
@@ -83,6 +87,8 @@ pub struct ToolCallDetail {
     pub status: String,
     pub duration_ms: u64,
     pub input: Value,
+    pub input_tokens: u64,
+    pub original_input_tokens: u64,
     pub decision: DeliveryDecision,
     pub original: ToolPayload,
     pub intercepted: ToolPayload,
@@ -133,8 +139,37 @@ pub struct EditRequest {
     pub new_text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct BashRequest {
+    #[schemars(description = "Command ID to rerun; omit program, args, cwd, and stdin when set")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command_id: Option<String>,
+    #[schemars(
+        description = "Allowlisted executable name, without a path; omit when using command_id"
+    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub program: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(
+        description = "Arguments passed directly to the executable; shell syntax is unsupported"
+    )]
+    pub args: Vec<String>,
+    #[schemars(
+        description = "Working directory relative to the workspace root; defaults to the root"
+    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "Optional standard input. Supported only for python3 with args [\"-\"]"
+    )]
+    pub stdin: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BashCommand {
     #[schemars(description = "Allowlisted executable name, without a path")]
     pub program: String,
     #[serde(default)]
@@ -146,4 +181,22 @@ pub struct BashRequest {
         description = "Working directory relative to the workspace root; defaults to the root"
     )]
     pub cwd: Option<String>,
+    #[serde(default)]
+    #[schemars(
+        description = "Optional standard input. Supported only for python3 with args [\"-\"]"
+    )]
+    pub stdin: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BashEditRequest {
+    #[schemars(description = "Command ID returned by an earlier bash or bash_edit call")]
+    pub command_id: String,
+    #[schemars(
+        description = "Exact text that must occur once across the command arguments and stdin"
+    )]
+    pub old_text: String,
+    #[schemars(description = "Replacement text")]
+    pub new_text: String,
 }

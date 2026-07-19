@@ -19,10 +19,16 @@ use similar::TextDiff;
 const MAX_COMMAND_DIFF_BYTES: usize = 512 * 1024;
 
 use crate::{
-    commands::{CommandTools, canonicalize},
+    commands::{CommandTools, canonicalize, edit_command},
     logging::log_line,
-    schema::{BashRequest, EditRequest, NewToolCall, ReadRequest, WriteRequest},
-    store::{CommandBaseline, CommandBaselineKey, ReadBaseline, ReadBaselineKey, SessionStore},
+    schema::{
+        BashCommand, BashEditRequest, BashRequest, EditRequest, NewToolCall, ReadRequest,
+        WriteRequest,
+    },
+    store::{
+        CommandBaseline, CommandBaselineKey, ReadBaseline, ReadBaselineKey, SessionStore,
+        command_id_for_key,
+    },
     tools::FileTools,
 };
 
@@ -65,7 +71,18 @@ impl Gateway {
         input: &T,
         started: Instant,
         outcome: ToolOutcome,
-    ) {
+    ) -> i64 {
+        self.record_with_original_input(tool_name, input, None, started, outcome)
+    }
+
+    fn record_with_original_input<T: Serialize>(
+        &self,
+        tool_name: &str,
+        input: &T,
+        original_input_text: Option<&str>,
+        started: Instant,
+        outcome: ToolOutcome,
+    ) -> i64 {
         let input = serde_json::to_value(input).unwrap_or(Value::Null);
         let input_text = serde_json::to_string(&input).unwrap_or_default();
         let call = NewToolCall {
@@ -81,6 +98,7 @@ impl Gateway {
             baseline_hash: outcome.baseline_hash,
             current_hash: outcome.current_hash,
             input_tokens: estimate_tokens(&input_text),
+            original_input_tokens: estimate_tokens(original_input_text.unwrap_or(&input_text)),
             original_output_tokens: estimate_tokens(&outcome.original),
             intercepted_output_tokens: estimate_tokens(&outcome.intercepted),
             original_bytes: outcome.original.len() as u64,
@@ -92,6 +110,183 @@ impl Gateway {
         let id = self.state.store.record(call);
         log["id"] = json!(id);
         log_line(log.to_string());
+        id
+    }
+
+    async fn run_command<T: Serialize>(
+        &self,
+        tool_name: &str,
+        input: &T,
+        command: BashCommand,
+        started: Instant,
+        return_command_id: bool,
+    ) -> CallToolResult {
+        let original_input_text = serde_json::to_string(&BashRequest {
+            command_id: None,
+            program: Some(command.program.clone()),
+            args: command.args.clone(),
+            cwd: command.cwd.clone(),
+            stdin: command.stdin.clone(),
+        })
+        .unwrap_or_default();
+        match self.state.commands.run(&command).await {
+            Ok(output) => {
+                let canonical = canonicalize(&command, &output);
+                let key = CommandBaselineKey {
+                    program: command.program.clone(),
+                    args: command.args.clone(),
+                    cwd: output.baseline_cwd.clone(),
+                    stdin: command.stdin.clone(),
+                };
+                let command_id = command_id_for_key(&key);
+                let previous = self.state.store.command_baseline(&key);
+                let (intercepted, mode, reason, baseline_hash) = if !output.completed() {
+                    (
+                        canonical.text.clone(),
+                        "error",
+                        "command_did_not_complete",
+                        None,
+                    )
+                } else {
+                    match &previous {
+                        Some(previous)
+                            if previous.raw_output_hash == output.raw_output_hash
+                                && previous.exit_code == output.exit_code.unwrap_or(-1) =>
+                        {
+                            (
+                                format!(
+                                    "Command returned the same output as last run.\n[Exit code: {}]",
+                                    output.exit_code.unwrap_or(-1)
+                                ),
+                                "unchanged",
+                                "command_output_unchanged",
+                                Some(previous.raw_output_hash.clone()),
+                            )
+                        }
+                        Some(previous)
+                            if previous.adapter_kind == canonical.adapter_kind
+                                && previous.canonical_hash == canonical.hash
+                                && previous.exit_code == output.exit_code.unwrap_or(-1)
+                                && !previous.output_was_truncated
+                                && !output.was_truncated =>
+                        {
+                            (
+                                format!(
+                                    "Command had no relevant result changes after normalization.\n[Exit code: {}]",
+                                    output.exit_code.unwrap_or(-1)
+                                ),
+                                "unchanged",
+                                "canonical_command_output_unchanged",
+                                Some(previous.raw_output_hash.clone()),
+                            )
+                        }
+                        Some(previous) if previous.adapter_kind == canonical.adapter_kind => {
+                            let diff = bound_text(
+                                &format!(
+                                    "Command output changes since the last run:\n\n{}",
+                                    render_diff(&previous.canonical_text, &canonical.text)
+                                ),
+                                MAX_COMMAND_DIFF_BYTES,
+                            );
+                            if estimate_tokens(&diff) < estimate_tokens(&canonical.text) {
+                                (
+                                    diff,
+                                    "diff",
+                                    "command_output_changed",
+                                    Some(previous.raw_output_hash.clone()),
+                                )
+                            } else {
+                                (
+                                    canonical.text.clone(),
+                                    "compressed",
+                                    "command_diff_not_smaller_than_current_output",
+                                    Some(previous.raw_output_hash.clone()),
+                                )
+                            }
+                        }
+                        Some(previous) => (
+                            canonical.text.clone(),
+                            "compressed",
+                            "command_adapter_changed",
+                            Some(previous.raw_output_hash.clone()),
+                        ),
+                        None => (
+                            canonical.text.clone(),
+                            "compressed",
+                            "no_command_baseline",
+                            None,
+                        ),
+                    }
+                };
+
+                if output.completed() {
+                    self.state.store.set_command_baseline(
+                        key,
+                        CommandBaseline {
+                            exit_code: output.exit_code.unwrap_or(-1),
+                            raw_output_hash: output.raw_output_hash.clone(),
+                            canonical_text: canonical.text,
+                            canonical_hash: canonical.hash,
+                            output_was_truncated: output.was_truncated,
+                            adapter_kind: canonical.adapter_kind.to_string(),
+                        },
+                    );
+                }
+                let completed = output.completed();
+                let status = if output.succeeded() {
+                    "success"
+                } else {
+                    "error"
+                };
+                let intercepted = if return_command_id && completed {
+                    format!("{intercepted}\n\n[Command ID: {command_id}]")
+                } else {
+                    intercepted
+                };
+                let response = intercepted.clone();
+                self.record_with_original_input(
+                    tool_name,
+                    input,
+                    Some(&original_input_text),
+                    started,
+                    ToolOutcome {
+                        subject_path: Some(command.cwd.clone().unwrap_or_else(|| ".".to_string())),
+                        status,
+                        mode,
+                        reason,
+                        baseline_hash,
+                        current_hash: Some(output.raw_output_hash),
+                        original: output.original_text,
+                        intercepted,
+                    },
+                );
+                if completed {
+                    CallToolResult::success(vec![ContentBlock::text(response)])
+                } else {
+                    CallToolResult::error(vec![ContentBlock::text(response)])
+                }
+            }
+            Err(error) => {
+                let text = format!("Error running {}: {error:#}", command.program);
+                self.record_with_original_input(
+                    tool_name,
+                    input,
+                    Some(&original_input_text),
+                    started,
+                    ToolOutcome {
+                        subject_path: Some(command.cwd.clone().unwrap_or_else(|| ".".to_string())),
+                        status: "error",
+                        mode: "error",
+                        reason: "command_execution_failed",
+                        baseline_hash: None,
+                        current_hash: None,
+                        original: text.clone(),
+                        intercepted: text.clone(),
+                    },
+                );
+                CallToolResult::error(vec![ContentBlock::text(text)])
+            }
+        }
     }
 }
 
@@ -319,147 +514,116 @@ impl Gateway {
     }
 
     #[tool(
-        description = "Run an allowlisted developer command without shell expansion. Supported command families include cargo build/check/clippy/fmt/test, selected npm scripts, read-only git commands, grep, and rg."
+        description = "Run an allowlisted developer command without shell expansion, or rerun a stored command by command_id. A full command returns a reusable ID. Supports cargo, selected npm and read-only git commands, grep, rg, and python3 scripts supplied through stdin with args [\"-\"]."
     )]
     async fn bash(&self, Parameters(request): Parameters<BashRequest>) -> CallToolResult {
         let started = Instant::now();
-        match self.state.commands.run(&request).await {
-            Ok(output) => {
-                let canonical = canonicalize(&request, &output);
-                let key = CommandBaselineKey {
-                    program: request.program.clone(),
+        let (command, return_command_id) = match (&request.command_id, &request.program) {
+            (None, Some(program)) => (
+                BashCommand {
+                    program: program.clone(),
                     args: request.args.clone(),
-                    cwd: output.baseline_cwd.clone(),
-                };
-                let previous = self.state.store.command_baseline(&key);
-                let (intercepted, mode, reason, baseline_hash) = if !output.completed() {
-                    (
-                        canonical.text.clone(),
-                        "error",
-                        "command_did_not_complete",
-                        None,
-                    )
-                } else {
-                    match &previous {
-                        Some(previous)
-                            if previous.raw_output_hash == output.raw_output_hash
-                                && previous.exit_code == output.exit_code.unwrap_or(-1) =>
-                        {
-                            (
-                                format!(
-                                    "Command returned the same output as last run.\n[Exit code: {}]",
-                                    output.exit_code.unwrap_or(-1)
-                                ),
-                                "unchanged",
-                                "command_output_unchanged",
-                                Some(previous.raw_output_hash.clone()),
-                            )
-                        }
-                        Some(previous)
-                            if previous.adapter_kind == canonical.adapter_kind
-                                && previous.canonical_hash == canonical.hash
-                                && previous.exit_code == output.exit_code.unwrap_or(-1)
-                                && !previous.output_was_truncated
-                                && !output.was_truncated =>
-                        {
-                            (
-                                format!(
-                                    "Command had no relevant result changes after normalization.\n[Exit code: {}]",
-                                    output.exit_code.unwrap_or(-1)
-                                ),
-                                "unchanged",
-                                "canonical_command_output_unchanged",
-                                Some(previous.raw_output_hash.clone()),
-                            )
-                        }
-                        Some(previous) if previous.adapter_kind == canonical.adapter_kind => (
-                            bound_text(
-                                &format!(
-                                    "Command output changes since the last run:\n\n{}",
-                                    render_diff(&previous.canonical_text, &canonical.text)
-                                ),
-                                MAX_COMMAND_DIFF_BYTES,
-                            ),
-                            "diff",
-                            "command_output_changed",
-                            Some(previous.raw_output_hash.clone()),
-                        ),
-                        Some(previous) => (
-                            canonical.text.clone(),
-                            "compressed",
-                            "command_adapter_changed",
-                            Some(previous.raw_output_hash.clone()),
-                        ),
-                        None => (
-                            canonical.text.clone(),
-                            "compressed",
-                            "no_command_baseline",
-                            None,
-                        ),
-                    }
-                };
-
-                if output.completed() {
-                    self.state.store.set_command_baseline(
-                        key,
-                        CommandBaseline {
-                            exit_code: output.exit_code.unwrap_or(-1),
-                            raw_output_hash: output.raw_output_hash.clone(),
-                            canonical_text: canonical.text,
-                            canonical_hash: canonical.hash,
-                            output_was_truncated: output.was_truncated,
-                            adapter_kind: canonical.adapter_kind.to_string(),
+                    cwd: request.cwd.clone(),
+                    stdin: request.stdin.clone(),
+                },
+                true,
+            ),
+            (Some(command_id), None)
+                if request.args.is_empty() && request.cwd.is_none() && request.stdin.is_none() =>
+            {
+                let Some(command) = self.state.store.command_by_id(command_id) else {
+                    let text = format!("Unknown command ID: {command_id}");
+                    self.record(
+                        "bash",
+                        &request,
+                        started,
+                        ToolOutcome {
+                            subject_path: None,
+                            status: "error",
+                            mode: "error",
+                            reason: "command_id_not_found",
+                            baseline_hash: None,
+                            current_hash: None,
+                            original: text.clone(),
+                            intercepted: text.clone(),
                         },
                     );
-                }
-                let completed = output.completed();
-                let status = if output.succeeded() {
-                    "success"
-                } else {
-                    "error"
+                    return CallToolResult::error(vec![ContentBlock::text(text)]);
                 };
-                let response = intercepted.clone();
-                self.record(
-                    "bash",
-                    &request,
-                    started,
-                    ToolOutcome {
-                        subject_path: Some(request.cwd.clone().unwrap_or_else(|| ".".to_string())),
-                        status,
-                        mode,
-                        reason,
-                        baseline_hash,
-                        current_hash: Some(output.raw_output_hash),
-                        original: output.original_text,
-                        intercepted,
-                    },
-                );
-                if completed {
-                    CallToolResult::success(vec![ContentBlock::text(response)])
-                } else {
-                    CallToolResult::error(vec![ContentBlock::text(response)])
-                }
+                (command, false)
             }
-            Err(error) => {
-                let text = format!("Error running {}: {error:#}", request.program);
+            _ => {
+                let text = "Provide either command_id alone or program with optional args, cwd, and stdin.".to_string();
                 self.record(
                     "bash",
                     &request,
                     started,
                     ToolOutcome {
-                        subject_path: Some(request.cwd.clone().unwrap_or_else(|| ".".to_string())),
+                        subject_path: request.cwd.clone(),
                         status: "error",
                         mode: "error",
-                        reason: "command_execution_failed",
+                        reason: "invalid_command_request",
                         baseline_hash: None,
                         current_hash: None,
                         original: text.clone(),
                         intercepted: text.clone(),
                     },
                 );
-                CallToolResult::error(vec![ContentBlock::text(text)])
+                return CallToolResult::error(vec![ContentBlock::text(text)]);
             }
-        }
+        };
+        self.run_command("bash", &request, command, started, return_command_id)
+            .await
+    }
+
+    #[tool(
+        description = "Replace one exact, unique text occurrence across a stored command's arguments and stdin, execute the edited command, and return a new reusable command ID."
+    )]
+    async fn bash_edit(&self, Parameters(request): Parameters<BashEditRequest>) -> CallToolResult {
+        let started = Instant::now();
+        let Some(command) = self.state.store.command_by_id(&request.command_id) else {
+            let text = format!("Unknown command ID: {}", request.command_id);
+            self.record(
+                "bash_edit",
+                &request,
+                started,
+                ToolOutcome {
+                    subject_path: None,
+                    status: "error",
+                    mode: "error",
+                    reason: "command_id_not_found",
+                    baseline_hash: None,
+                    current_hash: None,
+                    original: text.clone(),
+                    intercepted: text.clone(),
+                },
+            );
+            return CallToolResult::error(vec![ContentBlock::text(text)]);
+        };
+        let command = match edit_command(&command, &request.old_text, &request.new_text) {
+            Ok(command) => command,
+            Err(error) => {
+                let text = format!("Error editing command {}: {error:#}", request.command_id);
+                self.record(
+                    "bash_edit",
+                    &request,
+                    started,
+                    ToolOutcome {
+                        subject_path: command.cwd.clone(),
+                        status: "error",
+                        mode: "error",
+                        reason: "command_edit_failed",
+                        baseline_hash: None,
+                        current_hash: None,
+                        original: text.clone(),
+                        intercepted: text.clone(),
+                    },
+                );
+                return CallToolResult::error(vec![ContentBlock::text(text)]);
+            }
+        };
+        self.run_command("bash_edit", &request, command, started, true)
+            .await
     }
 }
 
@@ -467,7 +631,7 @@ impl Gateway {
 impl ServerHandler for Gateway {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
-            "Workspace-scoped read, create, edit, and allowlisted command tools with observable context optimization.",
+            "Workspace-scoped read, create, edit, reusable allowlisted commands, and exact stored-command edits with observable context optimization.",
         )
     }
 }
@@ -480,8 +644,11 @@ pub fn now_ms() -> i64 {
 }
 
 fn tool_call_log(call: &NewToolCall) -> Value {
-    let saved_tokens = call.original_output_tokens as i64 - call.intercepted_output_tokens as i64;
-    let without_runtime_tokens = call.input_tokens + call.original_output_tokens;
+    let input_saved_tokens = call.original_input_tokens as i64 - call.input_tokens as i64;
+    let output_saved_tokens =
+        call.original_output_tokens as i64 - call.intercepted_output_tokens as i64;
+    let saved_tokens = input_saved_tokens + output_saved_tokens;
+    let without_runtime_tokens = call.original_input_tokens + call.original_output_tokens;
     json!({
         "event": "tool_call",
         "sequence": call.sequence,
@@ -495,11 +662,13 @@ fn tool_call_log(call: &NewToolCall) -> Value {
         "baselineHash": call.baseline_hash.as_deref(),
         "currentHash": call.current_hash.as_deref(),
         "inputTokens": call.input_tokens,
+        "originalInputTokens": call.original_input_tokens,
+        "inputSavedTokens": input_saved_tokens,
         "originalOutputTokens": call.original_output_tokens,
         "interceptedOutputTokens": call.intercepted_output_tokens,
         "savedTokens": saved_tokens,
         "contextSavingsPercent": percentage(saved_tokens, without_runtime_tokens),
-        "outputSavingsPercent": percentage(saved_tokens, call.original_output_tokens),
+        "outputSavingsPercent": percentage(output_saved_tokens, call.original_output_tokens),
         "originalBytes": call.original_bytes,
         "interceptedBytes": call.intercepted_bytes,
     })
@@ -574,6 +743,7 @@ mod tests {
             original_text: "abcdefgh".to_string(),
             intercepted_text: "same".to_string(),
             input_tokens: 2,
+            original_input_tokens: 2,
             original_output_tokens: 8,
             intercepted_output_tokens: 2,
             original_bytes: 8,
@@ -599,6 +769,80 @@ mod tests {
         let bounded = bound_text(&"x".repeat(1_000), 256);
         assert!(bounded.len() <= 256);
         assert!(bounded.contains("diff bytes omitted"));
+    }
+
+    #[tokio::test]
+    async fn reuses_and_edits_python_commands_by_id() {
+        let root = tempfile::tempdir().unwrap();
+        let root_path = tokio::fs::canonicalize(root.path()).await.unwrap();
+        let store = SessionStore::new(crate::schema::SessionSummary {
+            id: "commands".to_string(),
+            started_at_ms: 1,
+            workspace_root: root_path.to_string_lossy().into_owned(),
+            context_window_tokens: None,
+            token_counter: "test".to_string(),
+        });
+        let gateway = Gateway::new(Arc::new(GatewayState {
+            store: store.clone(),
+            files: FileTools::new(root_path.clone()),
+            commands: CommandTools::new(root_path),
+            sequence: AtomicU64::new(1),
+        }));
+        let result_text = |result: CallToolResult| {
+            serde_json::to_value(result).unwrap()["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        };
+
+        let first = result_text(
+            gateway
+                .bash(Parameters(BashRequest {
+                    command_id: None,
+                    program: Some("python3".to_string()),
+                    args: vec!["-".to_string()],
+                    cwd: Some(".".to_string()),
+                    stdin: Some("# reusable script padding\nprint('before')\n".to_string()),
+                }))
+                .await,
+        );
+        let command_id = first
+            .split("[Command ID: ")
+            .nth(1)
+            .unwrap()
+            .trim_end_matches(']')
+            .to_string();
+        assert!(first.contains("before"));
+
+        let repeated = result_text(
+            gateway
+                .bash(Parameters(BashRequest {
+                    command_id: Some(command_id.clone()),
+                    program: None,
+                    args: vec![],
+                    cwd: None,
+                    stdin: None,
+                }))
+                .await,
+        );
+        assert!(repeated.contains("same output"));
+
+        let edited = result_text(
+            gateway
+                .bash_edit(Parameters(BashEditRequest {
+                    command_id: command_id.clone(),
+                    old_text: "before".to_string(),
+                    new_text: "after".to_string(),
+                }))
+                .await,
+        );
+        assert!(edited.contains("after"));
+        assert!(edited.contains("Command ID:"));
+        assert!(!edited.contains(&format!("Command ID: {command_id}]")));
+
+        let calls = store.snapshot().tool_calls;
+        assert_eq!(calls.len(), 3);
+        assert!(calls[1].original_input_tokens > calls[1].input_tokens);
     }
 
     #[tokio::test]

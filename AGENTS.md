@@ -29,15 +29,15 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 
 - `server/INDEX.md` — backend runtime, safety, persistence, and test navigation.
 - `server/src/main.rs` — CLI parsing, workspace canonicalization, fresh/resumed session setup, logging, MCP/HTTP lifecycle, and shutdown persistence.
-- `server/src/mcp.rs` — MCP handlers, delivery-mode decisions, diffing, token estimation, and evidence recording.
+- `server/src/mcp.rs` — MCP handlers, command-ID reuse/edit orchestration, delivery-mode decisions, diffing, token estimation, and evidence recording.
 - `server/src/tools.rs` — bounded UTF-8 reads, create-only writes, exact edits, path enforcement, and process-local mutation locks.
-- `server/src/commands.rs` — command allowlist, workspace-scoped working directories, bounded process capture, normalization, and Cargo test projection.
-- `server/src/store.rs` — concurrent calls and baselines, API snapshots/details, totals, and resumable session serialization.
+- `server/src/commands.rs` — command allowlist, Python stdin, workspace-scoped working directories, bounded process capture, stored-command edits, normalization, and Cargo test projection.
+- `server/src/store.rs` — concurrent calls, command lookup, baselines, API snapshots/details, totals, and resumable session serialization.
 - `server/src/api.rs` — health, current-session summary, and tool-call detail routes.
 - `server/src/schema.rs` — MCP request schemas and API response models.
 - `server/src/logging.rs` — diagnostics mirrored to stderr and `logs/<session-id>.log`.
 
-Unit tests are colocated in `server/src/commands.rs`, `server/src/mcp.rs`, `server/src/store.rs`, and `server/src/tools.rs`. `server/tests/context.md` supplies smoke-test instructions; `server/tests/opencode/` contains the isolated fixture, MCP configuration, scenario prompts, and `run-smoke.sh` runner.
+Unit tests are colocated in `server/src/commands.rs`, `server/src/mcp.rs`, `server/src/store.rs`, and `server/src/tools.rs`. `server/tests/context.md` supplies smoke-test instructions; `server/tests/opencode/` contains the isolated fixture, MCP configuration, scenario prompts, and `run-smoke.sh` runner, including command-ID reuse/edit assertions in scenarios 06–07.
 
 ### Frontend
 

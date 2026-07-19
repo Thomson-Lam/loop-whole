@@ -38,6 +38,7 @@
       ],
       "properties": {
         "toolInputTokens": { "type": "integer", "minimum": 0 },
+        "originalToolInputTokens": { "type": "integer", "minimum": 0 },
         "originalOutputTokens": { "type": "integer", "minimum": 0 },
         "interceptedOutputTokens": { "type": "integer", "minimum": 0 },
         "withoutRuntimeTokens": { "type": "integer", "minimum": 0 },
@@ -78,6 +79,7 @@
           "baselineHash": { "type": ["string", "null"] },
           "currentHash": { "type": ["string", "null"] },
           "input": {},
+          "originalInputTokens": { "type": "integer", "minimum": 0 },
           "original": { "$ref": "#/$defs/toolPayload" },
           "intercepted": { "$ref": "#/$defs/toolPayload" }
         },
@@ -150,6 +152,7 @@
         "program": { "type": "string" },
         "args": { "type": "array", "items": { "type": "string" } },
         "cwd": { "type": "string" },
+        "stdin": { "type": ["string", "null"] },
         "exitCode": { "type": "integer" },
         "rawOutputHash": { "type": "string" },
         "canonicalText": { "type": "string" },
