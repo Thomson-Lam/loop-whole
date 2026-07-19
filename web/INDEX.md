@@ -6,10 +6,11 @@ Purpose: Identify UI ownership and the boundary for connecting the dashboard to 
 ## Entry points and components
 
 - `src/main.jsx` — mounts the React application.
-- `src/App.jsx` — hash-based routing; `#/app` opens the dashboard and other routes open the landing page.
+- `src/App.jsx` — hash routing for the landing page, live dashboard, and lazy-loaded benchmark view.
 - `src/Landing.jsx` — marketing page and replay composition.
 - `src/ToolReplay.jsx` — live animated tool-call replay and token visualization.
 - `src/Dashboard.jsx` — live call timeline, original/intercepted comparison, and context-window overlay.
+- `src/Benchmarks.jsx` — bundled benchmark JSON normalization and Chart.js token comparison view.
 - `src/api.js` — fetches the current session and hydrates tool-call summaries with detail payloads.
 - `src/useLiveSession.js` — polls the backend API for React consumers.
 - `src/Antigravity.jsx` — React Three Fiber hero visualization.
@@ -21,6 +22,7 @@ Purpose: Identify UI ownership and the boundary for connecting the dashboard to 
 ## Backend integration boundary
 
 - `ToolReplay` and `Dashboard` consume the current live gateway session.
+- `Benchmarks` loads `benchmarks/*.json` at build time and does not call the live gateway API.
 - `src/api.js` fetches call details because the current-session endpoint only returns lightweight summaries.
 - `../server/src/api.rs` defines `GET /health`, `GET /api/v1/sessions/current`, and `GET /api/v1/tool-calls/{id}`.
 - `../server/src/schema.rs` is the authoritative camelCase response contract.
@@ -32,4 +34,3 @@ No frontend test setup currently exists.
 ## Related indexes
 
 - `../INDEX.md` — repository and backend navigation.
-
