@@ -1,5 +1,5 @@
 {
-  "name": "loopey-web",
+  "name": "Loop-Whole-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -24,3 +24,4 @@
     "vite": "^8.1.5"
   }
 }
+
