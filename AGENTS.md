@@ -19,10 +19,15 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `src/commands.rs` — Allowlisted command execution, bounded output capture, normalization, and Cargo test projection.
 - `src/store.rs` — Concurrent in-memory evidence and runtime baselines, token-summary projections, and shutdown JSON serialization.
 - `src/api.rs` — Health, session polling, and tool-call detail endpoints.
-- `src/logging.rs` — Repo-local diagnostics mirrored to stderr and `logs/`.
+- `src/logging.rs` — Repo-local diagnostics and per-call benchmark lines mirrored to stderr and `logs/`.
 - `src/schema.rs` — MCP inputs and frontend API response types.
 - `README.md` — Setup, MCP configuration, API usage, session dump schema, and implementation status.
+- `issues.md` — Frontend implementation issue for landing-page tool modals and context-optimization animations.
 - `.loopwhole.example/session.schema.json` — Committed reference schema for persisted session dumps.
+- `tests/context.md` — Entry point for local MCP smoke testing.
+- `tests/opencode/` — Isolated OpenCode configuration, fixture, instruction prompts, and smoke runner.
+- `docs/tools/` — Per-tool delivery, token-reduction, and diagnosis documentation.
+- `docs/tests/manual.md` — Manual OpenCode reproduction, measurement, and troubleshooting guide.
 - `docs/planning/` — Feature, optimization, frontend, and silent-failure specifications.
 
 Tests currently live beside the implementation in `src/commands.rs`, `src/mcp.rs`, `src/store.rs`, and `src/tools.rs`.

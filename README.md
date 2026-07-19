@@ -96,6 +96,7 @@ Expected startup order:
 - Results are limited to 2,000 lines or 50KB.
 - An identical repeated request returns an unchanged marker or a diff from its previous result.
 - Paths are restricted to the configured workspace, including symlink checks.
+- Detailed reduction behavior: `docs/tools/read.md`.
 
 ### `write`
 
@@ -110,6 +111,7 @@ Expected startup order:
 - Atomically refuses to overwrite an existing path; use `edit` instead.
 - Serializes concurrent writes to the same path within the server process.
 - Paths are restricted to the configured workspace.
+- Detailed accounting behavior: `docs/tools/write.md`.
 
 ### `edit`
 
@@ -124,6 +126,7 @@ Expected startup order:
 - Replaces one exact, unique occurrence in an existing UTF-8 file.
 - Rejects missing or ambiguous matches.
 - Serializes concurrent edits to the same path within the server process.
+- Detailed accounting behavior: `docs/tools/edit.md`.
 
 ### `bash`
 
@@ -141,6 +144,7 @@ Expected startup order:
 - Times out after 120 seconds and retains at most 256KB from the head and tail of each output stream while hashing the complete drained output.
 - Repeated exact commands are always executed, then compared with the previous result for unchanged or progressive-diff delivery.
 - The allowlist is a demo policy, not an operating-system sandbox; allowed programs and build scripts retain the process user's permissions.
+- Detailed reduction behavior: `docs/tools/bash.md`.
 
 ## Dashboard API
 
@@ -282,7 +286,25 @@ Each run writes diagnostics to:
 logs/<session-id>.log
 ```
 
+Every recorded tool call also emits one JSON line containing its delivery mode, decision reason, duration, hashes, byte counts, input/original/intercepted token estimates, saved tokens, and context/output savings percentages. Payload text is excluded from logs and remains available through the API and session dump.
+
+```bash
+grep '^{' logs/<session-id>.log | jq 'select(.event == "tool_call")'
+```
+
 The `logs/` directory is gitignored. This is the easiest way to inspect server activity when an MCP host hides child-process stderr.
+
+## OpenCode smoke tests
+
+An isolated fixture and instruction-driven runner live in `tests/opencode/`:
+
+```bash
+tests/opencode/run-smoke.sh 01-read-unchanged
+tests/opencode/run-smoke.sh 04-bash-unchanged
+tests/opencode/run-smoke.sh all
+```
+
+Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call log metrics plus shutdown session totals. See `tests/opencode/README.md`.
 
 ## Development checks
 
