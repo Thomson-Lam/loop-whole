@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import useLiveSession from "./useLiveSession";
+import session from "./data/demo-session.json";
 
 const MODE_LABEL = {
   full: "FULL",
@@ -15,13 +15,9 @@ function fmt(n) {
 }
 
 export default function Dashboard() {
-  const { session, error } = useLiveSession();
   const calls = useMemo(
-    () =>
-      [...(session?.toolCalls ?? [])].sort(
-        (a, b) => a.sequence - b.sequence
-      ),
-    [session]
+    () => [...session.toolCalls].sort((a, b) => a.sequence - b.sequence),
+    []
   );
 
   const [index, setIndex] = useState(0);
@@ -48,13 +44,7 @@ export default function Dashboard() {
     setIndex((i) => Math.max(0, Math.min(i, calls.length - 1)));
   }, [calls.length]);
 
-  if (!session) {
-    return (
-      <div className="dash pane-body">
-        {error ? `API unavailable: ${error.message}` : "Loading session…"}
-      </div>
-    );
-  }
+
   if (!call) {
     return <div className="dash pane-body">Waiting for tool calls…</div>;
   }
@@ -77,12 +67,17 @@ export default function Dashboard() {
           <a className="brand" href="#/" title="Back to home">
             <span className="mark">✳</span> Loop-Whole
           </a>
-          <div className="tabs">
-            <button className="tab active">Token</button>
+          <nav className="tabs" aria-label="Dashboard views">
+            <a className="tab active" href="#/app" aria-current="page">
+              Token
+            </a>
+            <a className="tab" href="#/benchmarks">
+              Benchmark
+            </a>
             <button className="tab disabled" disabled title="Coming soon">
               Silent Failures
             </button>
-          </div>
+          </nav>
         </div>
         <div className="savings">
           <div className="pct">{totals.savingsPercent}%</div>
@@ -198,4 +193,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

@@ -47,6 +47,7 @@ export default function Landing() {
           <nav className="nav-links">
             <a href="#how">How it works</a>
             <a href="#replay">Live replay</a>
+            <a href="#/benchmarks">Benchmarks</a>
             <a href="#/app">Dashboard</a>
           </nav>
           <a className="btn btn-primary" href="#/app">
@@ -93,6 +94,9 @@ export default function Landing() {
             <div className="cta-row">
               <a className="btn btn-primary" href="#/app">
                 Launch →
+              </a>
+              <a className="btn btn-ghost" href="#/benchmarks">
+                View benchmarks
               </a>
               <a className="btn btn-ghost" href="#how">
                 How it works
@@ -183,4 +187,3 @@ export default function Landing() {
     </>
   );
 }
-

@@ -87,15 +87,24 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Extra argument passed to `opencode run` (repeatable)",
     )
+    parser.add_argument(
+        "--opencode-api-addr",
+        default="127.0.0.1:0",
+        help=(
+            "Override MCP gateway --api-addr values for each OpenCode run "
+            "(default: 127.0.0.1:0, an OS-assigned port)"
+        ),
+    )
     parser.add_argument("--workers", type=int, default=1, help="Concurrent agent runs")
     parser.add_argument("--timeout", type=int, default=3600, help="Seconds allowed per agent run")
     parser.add_argument("--limit", type=int, help="Process at most this many pending instances")
     parser.add_argument("--start", type=int, default=0, help="Skip this many selected instances")
     parser.add_argument(
         "--instance-id",
-        action="append",
+        action="extend",
+        nargs="+",
         dest="instance_ids",
-        help="Only run this instance ID (repeatable)",
+        help="Only run these instance IDs (space separated; option is repeatable)",
     )
     parser.add_argument(
         "--include-hints",
@@ -254,6 +263,34 @@ def build_agent_command(
     return command, prompt
 
 
+def opencode_config_override(config_path: Path, api_addr: str) -> str | None:
+    """Override gateway API addresses without modifying the selected config file."""
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PredictionError(f"failed to read OpenCode config {config_path}: {exc}") from exc
+
+    mcp_overrides: dict[str, dict[str, Any]] = {}
+    for name, entry in config.get("mcp", {}).items():
+        if not isinstance(entry, dict) or not isinstance(entry.get("command"), list):
+            continue
+        command = [str(value) for value in entry["command"]]
+        try:
+            address_index = command.index("--api-addr") + 1
+        except ValueError:
+            continue
+        if address_index >= len(command):
+            raise PredictionError(
+                f"OpenCode MCP server {name!r} has --api-addr without a value"
+            )
+        command[address_index] = api_addr
+        mcp_overrides[str(name)] = {**entry, "command": command}
+
+    if not mcp_overrides:
+        return None
+    return json.dumps({"mcp": mcp_overrides})
+
+
 def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str, str]:
     instance_id = str(instance["instance_id"])
     with _console_lock:
@@ -274,6 +311,11 @@ def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str
     if args.backend == "opencode":
         command_env = os.environ.copy()
         command_env["OPENCODE_CONFIG"] = str(args.opencode_config)
+        config_override = opencode_config_override(
+            args.opencode_config, args.opencode_api_addr
+        )
+        if config_override:
+            command_env["OPENCODE_CONFIG_CONTENT"] = config_override
 
     run_details = [
         f"[{args.backend}] Starting {instance_id}",
@@ -282,6 +324,7 @@ def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str
     ]
     if args.backend == "opencode":
         run_details.append(f"[opencode] Config: {args.opencode_config}")
+        run_details.append(f"[opencode] MCP API address: {args.opencode_api_addr}")
     run_details.extend(
         [
             f"[{args.backend}] Timeout: {args.timeout} seconds",
@@ -317,7 +360,11 @@ def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str
             )
         patch = collect_patch(checkout)
         if not patch:
-            raise PredictionError(f"{backend_label} produced no patch")
+            tail = result.stdout[-4000:].strip()
+            raise PredictionError(
+                f"{backend_label} produced no patch"
+                + (f"\n{tail}" if tail else "")
+            )
         log_path.write_text(patch, encoding="utf-8")
         return {
             "instance_id": instance_id,

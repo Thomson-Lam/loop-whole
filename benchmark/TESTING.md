@@ -4,8 +4,19 @@ Codex (default):
 
 ```bash
 venv/bin/python generate_predictions.py \
+    --instance-id astropy__astropy-13398 scikit-learn__scikit-learn-12682 django__django-14631 pydata__xarray-3095 sympy__sympy-14248 \
     --dataset SWE-bench/SWE-bench_Verified \
-    --limit 2
+    --workers 2
+
+venv/bin/python generate_predictions.py \
+    --backend opencode \
+    --dataset SWE-bench/SWE-bench_Verified \
+    --instance-id sympy__sympy-14248 \
+    --workers 1
+
+
+scikit-learn__scikit-learn-12682 django__django-14631 pydata__xarray-3095 sympy__sympy-14248 \
+--work-dir .swebench-shard-1
 ```
 
 OpenCode:
@@ -24,5 +35,5 @@ python -m swebench.harness.run_evaluation \
     --predictions_path predictions.jsonl \
     --max_workers 2 \
     --namespace '' \
-    --run_id test2
+    --run_id more_tests
 ```

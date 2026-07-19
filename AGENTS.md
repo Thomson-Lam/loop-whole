@@ -1,6 +1,6 @@
 # Warp MCP Gateway
 
-A Rust MCP gateway exposing context-aware file tools and an allowlisted developer-command runner over stdio. It keeps tool-call evidence and comparison baselines in memory, serves a read-only polling API, and writes a session JSON file under the configured workspace on shutdown. A Vite/React frontend displays the live session.
+A Rust MCP gateway exposing context-aware file tools and an allowlisted developer-command runner over stdio. It keeps tool-call evidence and comparison baselines, serves a read-only polling API, and writes resumable session JSON under the configured workspace on shutdown. A Vite/React frontend displays live sessions and benchmark results.
 
 ## Project rules
 
@@ -27,6 +27,7 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 
 ### Backend
 
+- `server/INDEX.md` — backend runtime, safety, persistence, and test navigation.
 - `server/src/main.rs` — CLI parsing, workspace canonicalization, fresh/resumed session setup, logging, MCP/HTTP lifecycle, and shutdown persistence.
 - `server/src/mcp.rs` — MCP handlers, delivery-mode decisions, diffing, token estimation, and evidence recording.
 - `server/src/tools.rs` — bounded UTF-8 reads, create-only writes, exact edits, path enforcement, and process-local mutation locks.
@@ -40,9 +41,11 @@ Unit tests are colocated in `server/src/commands.rs`, `server/src/mcp.rs`, `serv
 
 ### Frontend
 
-- `web/src/main.jsx` and `web/src/App.jsx` — React bootstrap and hash-based landing/dashboard routing.
+- `web/INDEX.md` — frontend component map and live API integration boundary.
+- `web/src/main.jsx` and `web/src/App.jsx` — React bootstrap and hash-based landing, dashboard, and benchmark routing.
 - `web/src/Landing.jsx` and `web/src/ToolReplay.jsx` — marketing page and live current-session replay.
 - `web/src/Dashboard.jsx` — per-call original/intercepted comparison and cumulative context metrics.
+- `web/src/Benchmarks.jsx` — bundled benchmark ingestion and Chart.js token comparisons.
 - `web/src/api.js` and `web/src/useLiveSession.js` — current-session/detail hydration and polling.
 - `web/src/Antigravity.jsx` — Three.js hero effect; `web/src/index.css` contains shared landing, replay, and dashboard styles.
 - `web/index.html`, `web/eslint.config.js`, and `web/vite.config.js` — browser entry, linting, build, and development-server configuration.
