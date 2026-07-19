@@ -91,4 +91,4 @@ cargo test passing → edit test → same cargo command failing → diff
 
 If no baseline matches, verify that program, argument order, arguments, and working directory are exactly identical and that the same gateway session stayed alive.
 
-The allowlist is not an operating-system sandbox. See `@docs/tests/manual.md`, `@tests/opencode/instructions/04-bash-unchanged.md`, and `@tests/opencode/instructions/05-bash-diff.md`.
+The allowlist is not an operating-system sandbox. See `@docs/tests/manual.md`, `@server/tests/opencode/instructions/04-bash-unchanged.md`, and `@server/tests/opencode/instructions/05-bash-diff.md`.

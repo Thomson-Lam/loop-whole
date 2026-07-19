@@ -196,13 +196,6 @@ export default function ToolReplay() {
     }
   };
 
-  const meta = TOOL_META[call.toolName] || {
-    label: call.toolName,
-    statement: "",
-    note: "",
-    icon: "▤",
-  };
-
   const origLines = call.original.text.replace(/\n$/, "").split("\n");
   const intLines = call.intercepted.text.replace(/\n$/, "").split("\n");
 

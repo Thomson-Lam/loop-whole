@@ -60,4 +60,4 @@ read after edit:       diff when smaller than current view
 
 Never use fuzzy replacement to force a stale edit through; an error preserves the current file for diagnosis.
 
-See `@docs/tests/manual.md`, `@tests/opencode/instructions/02-read-diff.md`, and `@tests/opencode/instructions/03-write-edit.md`.
+See `@docs/tests/manual.md`, `@server/tests/opencode/instructions/02-read-diff.md`, and `@server/tests/opencode/instructions/03-write-edit.md`.

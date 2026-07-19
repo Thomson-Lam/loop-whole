@@ -53,4 +53,4 @@ Unexpected positive or negative output savings would indicate that original and 
 
 An unrestricted command can still bypass create-only policy; the command allowlist is a demo policy rather than an operating-system sandbox.
 
-See `@docs/tests/manual.md` and `@tests/opencode/instructions/03-write-edit.md`.
+See `@docs/tests/manual.md` and `@server/tests/opencode/instructions/03-write-edit.md`.

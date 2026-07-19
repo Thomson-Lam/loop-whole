@@ -95,4 +95,4 @@ edit + reread: diff       positive savings when the diff is smaller
 
 If a repeated read remains `full`, check that path, offset, and limit are exactly identical and that both calls used the same live gateway session.
 
-See `@docs/tests/manual.md` and `@tests/opencode/instructions/01-read-unchanged.md`.
+See `@docs/tests/manual.md` and `@server/tests/opencode/instructions/01-read-unchanged.md`.
