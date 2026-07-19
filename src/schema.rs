@@ -117,8 +117,33 @@ pub struct ReadRequest {
 
 #[derive(Debug, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WriteRequest {
-    #[schemars(description = "Path to write, relative to the workspace root")]
+    #[schemars(description = "New path to create, relative to the workspace root")]
     pub path: String,
-    #[schemars(description = "Complete UTF-8 content to write")]
+    #[schemars(description = "Complete UTF-8 content for the new file")]
     pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct EditRequest {
+    #[schemars(description = "Path to edit, relative to the workspace root")]
+    pub path: String,
+    #[schemars(description = "Exact text that must occur once in the current file")]
+    pub old_text: String,
+    #[schemars(description = "Replacement text")]
+    pub new_text: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct BashRequest {
+    #[schemars(description = "Allowlisted executable name, without a path")]
+    pub program: String,
+    #[serde(default)]
+    #[schemars(
+        description = "Arguments passed directly to the executable; shell syntax is unsupported"
+    )]
+    pub args: Vec<String>,
+    #[schemars(
+        description = "Working directory relative to the workspace root; defaults to the root"
+    )]
+    pub cwd: Option<String>,
 }

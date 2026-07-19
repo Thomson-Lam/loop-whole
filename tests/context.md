@@ -1,90 +1,37 @@
-# MCP server test context
+# OpenCode agent context: Loopwhole MCP smoke test
 
-Use this when opening an OpenCode agent to test the Rust MCP server in this repository.
+You are running a controlled diagnostic of the Loopwhole MCP gateway. The goal is to execute the requested tool calls exactly and verify that the model-visible `intercepted` result is smaller than the counterfactual `original` result when an optimization applies.
 
-## Goal
+The smoke runner injects the contents of these implementation references after this context:
 
-Validate that the MCP server can be launched by an MCP client over stdio, exposes `read` and `write`, serves the frontend polling API, and writes a session dump on shutdown.
+- @docs/tools/read.md
+- @docs/tools/write.md
+- @docs/tools/edit.md
+- @docs/tools/bash.md
+- @docs/tests/manual.md
 
-## Binary
+Do not call any tool to fetch these `@` paths. Read their injected contents directly so documentation lookup does not pollute the tool-call benchmark.
 
-Build first:
+## Rules
 
-```bash
-cargo build --release
-```
+1. Use only Loopwhole MCP tools for read, write, edit, and command operations.
+2. Do not substitute OpenCode native filesystem, patch, or Bash tools.
+3. Follow the scenario's paths, offsets, limits, programs, arguments, and working directories exactly. Baseline matching uses exact request keys.
+4. Repeated Bash commands must execute again; the prior result is only a comparison baseline.
+5. Do not make unrelated changes or attempt to improve the fixture.
+6. After the requested calls, report the observed delivery behavior and stop.
 
-Binary:
+## Interpretation
 
-```text
-target/release/warp-mcp-gateway
-```
+For each tool call:
 
-## Suggested OpenCode test config
+- `original` means the bounded result the current invocation would normally return;
+- `intercepted` means the exact result delivered to you;
+- `savedTokens` is `originalOutputTokens - interceptedOutputTokens`;
+- these instructions and linked documentation are not included in gateway token totals;
+- `full` and `passthrough` commonly save zero;
+- `unchanged`, `diff`, and `compressed` are expected to reduce output when their compact representation is smaller.
 
-A repo-scoped OpenCode config for this MCP server lives at:
+Write and edit are mutation-safety tools and normally use passthrough output. Their changes establish scenarios that allow later reads or commands to demonstrate compaction.
 
-```text
-tests/opencode/opencode.json
-```
-
-It is intentionally separate from your global OpenCode config.
-
-Launch OpenCode with that config injected:
-
-```bash
-cd /Users/tlam/warp
-cargo build
-OPENCODE_CONFIG_CONTENT="$(jq -c . tests/opencode/opencode.json)" opencode /Users/tlam/warp
-```
-
-This uses a local MCP server named `Loopwhole` with:
-
-- binary: `/Users/tlam/warp/target/debug/warp-mcp-gateway`
-- root: `/Users/tlam/warp`
-- api: `127.0.0.1:8787`
-- session id: `opencode-loopwhole`
-
-Disable native read/write tools in the agent if possible so calls go through MCP.
-
-## What to test
-
-1. MCP client can initialize the server.
-2. `tools/list` shows `read` and `write`.
-3. `write` can create a test file.
-4. `read` can read it back.
-5. Frontend API responds while MCP session is active:
-   - `GET /health`
-   - `GET /api/v1/sessions/current`
-   - `GET /api/v1/tool-calls/{id}`
-6. On session shutdown, a dump is written to:
-
-```text
-.loopwhole/sessions/opencode-test.json
-```
-
-## Important stdout/stderr note
-
-Yes: you should assume you **cannot** use stdout for ordinary server logs.
-
-- stdout is reserved for MCP JSON-RPC over stdio;
-- writing logs to stdout would corrupt the MCP transport;
-- this server writes diagnostics to stderr instead.
-
-So if the MCP server is launched as a child process by the MCP client:
-
-- MCP protocol travels on stdin/stdout;
-- normal logs should be visible only if the client surfaces child-process stderr;
-- if the client hides stderr, use the HTTP API and session dump as your primary observability.
-
-## Practical implication
-
-If you want to inspect runtime behavior while testing through a real MCP client, prefer:
-
-- polling `http://127.0.0.1:8787/api/v1/sessions/current`;
-- polling `http://127.0.0.1:8787/api/v1/tool-calls/{id}`;
-- inspecting `.loopwhole/sessions/opencode-test.json` after shutdown.
-
-## Manual smoke test fallback
-
-If MCP client stderr is hidden, you can still test the server manually with a small stdio client script or the existing local smoke flow, then inspect the API and dump file.
+If behavior differs from the scenario expectation, report the exact tool arguments, returned text, delivery behavior if visible, and likely diagnosis from the linked tool documentation. Do not hide zero or negative savings.

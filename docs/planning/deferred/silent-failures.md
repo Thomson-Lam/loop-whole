@@ -1,5 +1,7 @@
 This is a prior conversation with an agent:
 
+DEFERRED. Focus on token optimization right now.
+
 ## User
 
 > I am designing a proof of concept project for a hackathon track: "design something that improves
