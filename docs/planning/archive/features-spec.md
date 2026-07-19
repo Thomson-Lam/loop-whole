@@ -1,5 +1,7 @@
 # Proposed product specification direction
 
+ARCHIVED. Refer to features-spec2.md.
+
 ## Product one-liner
 
 > **A repository-state runtime that gives coding agents only the context they need and surfaces evidence of silent execution failures—without changing how developers prompt or work.**
