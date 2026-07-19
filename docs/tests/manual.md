@@ -17,26 +17,26 @@ OpenCode must have a configured model/provider.
 From the repository root, run one scenario:
 
 ```bash
-tests/opencode/run-smoke.sh 01-read-unchanged
-tests/opencode/run-smoke.sh 02-read-diff
-tests/opencode/run-smoke.sh 03-write-edit
-tests/opencode/run-smoke.sh 04-bash-unchanged
-tests/opencode/run-smoke.sh 05-bash-diff
+server/tests/opencode/run-smoke.sh 01-read-unchanged
+server/tests/opencode/run-smoke.sh 02-read-diff
+server/tests/opencode/run-smoke.sh 03-write-edit
+server/tests/opencode/run-smoke.sh 04-bash-unchanged
+server/tests/opencode/run-smoke.sh 05-bash-diff
 ```
 
 Run all scenarios:
 
 ```bash
-tests/opencode/run-smoke.sh all
+server/tests/opencode/run-smoke.sh all
 ```
 
 The runner performs these steps for every scenario:
 
-1. builds `target/debug/warp-mcp-gateway`;
-2. resets `tests/opencode/workspace/` from the committed fixture;
+1. builds `server/target/debug/warp-mcp-gateway`;
+2. resets `server/tests/opencode/workspace/` from the committed fixture;
 3. disables OpenCode's native read/write/edit/patch/Bash tools;
 4. starts one gateway session rooted at the fixture workspace;
-5. gives OpenCode `tests/context.md` followed by the selected instruction;
+5. gives OpenCode `server/tests/context.md` followed by the selected instruction;
 6. prints per-call JSON log measurements and shutdown session totals.
 
 ## Expected scenario behavior
@@ -63,7 +63,7 @@ Exact counts may change with response wording, compiler output, or fixture chang
 The generated workspace is reset before each scenario, so its log contains only the current isolated run:
 
 ```bash
-LOG=tests/opencode/workspace/logs/opencode-04-bash-unchanged.log
+LOG=server/tests/opencode/workspace/logs/opencode-04-bash-unchanged.log
 grep '^{' "$LOG" | jq 'select(.event == "tool_call")'
 ```
 
@@ -83,7 +83,7 @@ Each line excludes payload text but includes the fields needed to explain the de
 ## Inspect the shutdown dump
 
 ```bash
-DUMP=tests/opencode/workspace/.loopwhole/sessions/opencode-04-bash-unchanged.json
+DUMP=server/tests/opencode/workspace/.loopwhole/sessions/opencode-04-bash-unchanged.json
 jq '.totals' "$DUMP"
 ```
 
@@ -122,7 +122,7 @@ The runner is preferred because it creates absolute paths dynamically. Its equiv
 
 ```bash
 PROMPT="$(
-  cat tests/context.md
+  cat server/tests/context.md
   for document in \
     docs/tools/read.md docs/tools/write.md docs/tools/edit.md \
     docs/tools/bash.md docs/tests/manual.md
@@ -131,9 +131,9 @@ PROMPT="$(
     cat "$document"
     printf '\n\n--- END %s ---\n' "$document"
   done
-  cat tests/opencode/instructions/01-read-unchanged.md
+  cat server/tests/opencode/instructions/01-read-unchanged.md
 )"
-OPENCODE_CONFIG_CONTENT="$(jq -c . tests/opencode/opencode.json)" \
+OPENCODE_CONFIG_CONTENT="$(jq -c . server/tests/opencode/opencode.json)" \
   opencode run "$PROMPT"
 ```
 
@@ -144,7 +144,7 @@ The committed configuration contains paths for this local checkout. `run-smoke.s
 ### No JSON tool-call lines
 
 - rebuild the gateway;
-- confirm OpenCode launched `target/debug/warp-mcp-gateway`;
+- confirm OpenCode launched `server/target/debug/warp-mcp-gateway`;
 - confirm the MCP process uses the expected session ID;
 - inspect non-JSON startup/error lines in the same log.
 

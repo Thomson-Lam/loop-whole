@@ -1,7 +1,8 @@
-/target/
+/server/target/
 /.loopwhole/
 /logs/
+/node_modules/
 docs/handoff/
-/tests/opencode/workspace/
-/tests/opencode/fixture/target/
-/tests/opencode/fixture/Cargo.lock
+/server/tests/opencode/workspace/
+/server/tests/opencode/fixture/target/
+/server/tests/opencode/fixture/Cargo.lock

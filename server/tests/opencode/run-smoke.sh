@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-TEST_ROOT="$ROOT/tests/opencode"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+SERVER_ROOT="$ROOT/server"
+TEST_ROOT="$SERVER_ROOT/tests/opencode"
 FIXTURE="$TEST_ROOT/fixture"
 WORKSPACE="$TEST_ROOT/workspace"
 CONFIG="$TEST_ROOT/opencode.json"
@@ -55,6 +56,7 @@ print_results() {
     jq '.totals' "$dump"
   else
     echo "missing: $dump"
+    return 1
   fi
 }
 
@@ -72,17 +74,17 @@ run_one() {
   local config_content
   local prompt
   config_content="$(jq -c \
-    --arg binary "$ROOT/target/debug/warp-mcp-gateway" \
+    --arg binary "$SERVER_ROOT/target/debug/warp-mcp-gateway" \
     --arg workspace "$WORKSPACE" \
     --arg session "$session_id" \
     '.mcp.Loopwhole.command = [
       $binary,
       "--root", $workspace,
-      "--api-addr", "127.0.0.1:8787",
+      "--api-addr", "127.0.0.1:0",
       "--session-id", $session
     ]' "$CONFIG")"
   prompt="$(
-    cat "$ROOT/tests/context.md"
+    cat "$SERVER_ROOT/tests/context.md"
     for document in "${DOCUMENTS[@]}"; do
       printf '\n\n--- BEGIN %s ---\n\n' "$document"
       cat "$ROOT/$document"
@@ -111,7 +113,7 @@ command -v opencode >/dev/null || {
   exit 1
 }
 
-cargo build --manifest-path "$ROOT/Cargo.toml"
+cargo build --manifest-path "$SERVER_ROOT/Cargo.toml"
 
 if [[ ${1:-all} == "all" ]]; then
   for scenario in "${SCENARIOS[@]}"; do
