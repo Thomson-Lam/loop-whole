@@ -28,7 +28,7 @@ const TOOL_META = {
     label: "Bash",
     icon: "»_",
     statement: "Execute again, then return only the relevant output changes.",
-    note: "Bash always executes — it is never cached or skipped. Loopey canonicalizes the output, then compares it with the previous run.",
+    note: "Bash always executes — it is never cached or skipped. Loop-Whole canonicalizes the output, then compares it with the previous run.",
   },
 };
 
@@ -50,7 +50,7 @@ function captionFor(call) {
   if (deliveryMode === "unchanged" && toolName === "bash")
     return "Command ran again and returned the identical result — only a short marker is delivered.";
   if (deliveryMode === "unchanged")
-    return "Already delivered identically — Loopey returns a one-line marker instead of re-sending the file.";
+    return "Already delivered identically — Loop-Whole returns a one-line marker instead of re-sending the file.";
   if (deliveryMode === "diff")
     return "Changed since the stored baseline — delivered as a minimal diff of just the changed lines.";
   if (deliveryMode === "compressed")
@@ -64,7 +64,7 @@ function captionFor(call) {
 
 function classifyLine(line) {
   if (line.startsWith("@@")) return "rl-hunk";
-  if (line.startsWith("[loopey]")) return "rl-loopey";
+  if (line.startsWith("[loop-whole]")) return "rl-loop-whole";
   if (line.startsWith("+")) return "rl-add";
   if (line.startsWith("-")) return "rl-del";
   return "rl-ctx";
@@ -206,7 +206,7 @@ export default function ToolReplay() {
           <span className="mono kicker">Context-aware tools</span>
           <h2>Your tools remember what the agent has already seen.</h2>
           <p>
-            Loopey runs the real operation, keeps the original evidence, and
+            Loop-Whole runs the real operation, keeps the original evidence, and
             sends the smallest safe result back to the model. Watch a real
             session replay — <b>left is what the tool returned</b>,{" "}
             <b>right is what the model received</b>.
@@ -392,10 +392,11 @@ export default function ToolReplay() {
 
         <p className="replay-fine mono">
           Illustrative replay from the smoke fixture. Token counts are estimates
-          (⌈characters ÷ 4⌉), not model-tokenizer tokens. Loopey reduces future
+          (⌈characters ÷ 4⌉), not model-tokenizer tokens. Loop-Whole reduces future
           tool responses; it does not rewrite existing model history.
         </p>
       </div>
     </section>
   );
 }
+

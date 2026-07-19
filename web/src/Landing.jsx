@@ -42,7 +42,7 @@ export default function Landing() {
       <header>
         <div className="wrap nav">
           <div className="brand">
-            <span className="mark">✳</span> Loopey
+            <span className="mark">✳</span> Loop-Whole
           </div>
           <nav className="nav-links">
             <a href="#how">How it works</a>
@@ -83,7 +83,7 @@ export default function Landing() {
               Context runtime · MCP-native · agent-agnostic
             </span>
 
-            <h1>Loopey</h1>
+            <h1>Loop-Whole</h1>
             <p className="sub">
               A repository-state runtime that gives coding agents{" "}
               <b>only the context they need</b> — and surfaces evidence when they
@@ -130,7 +130,7 @@ export default function Landing() {
               <span className="mono kicker">How it works</span>
               <h2>Right state, not more context.</h2>
               <p>
-                Loopey sits between your agent and the repository as an MCP
+                Loop-Whole sits between your agent and the repository as an MCP
                 gateway. It remembers what the agent has already seen and
                 delivers the smallest correct result.
               </p>
@@ -175,7 +175,7 @@ export default function Landing() {
       <footer>
         <div className="wrap foot">
           <div className="brand">
-            <span className="mark">✳</span> Loopey
+            <span className="mark">✳</span> Loop-Whole
           </div>
           <span className="mono">Built at Hack the 6ix · 2026</span>
         </div>
@@ -183,3 +183,4 @@ export default function Landing() {
     </>
   );
 }
+
