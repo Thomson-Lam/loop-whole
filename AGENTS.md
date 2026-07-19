@@ -11,17 +11,20 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - Prefer the smallest direct implementation needed for the hackathon demo.
 - Keep this navigation map current whenever files are added, removed, or repurposed.
 - Remind the user to run cargo build after file changes: output "test (run cargo build)?"
+- Use Loopwhole MCP tools; `NoC` = no relevant change since the prior matching call, and Bash still ran.
 
 ## Repository navigation
 
 ### Root and documentation
 
-- `README.md` — build and MCP-client setup, tool contracts, API endpoints, persistence, logs, and development checks.
+- `README.md` — hackathon-facing experimental warning, supported-harness quick start, manual MCP setup, tool contracts, demo API, persistence, development logs, and checks.
 - `server/Cargo.toml` and `web/package.json` — backend and frontend manifests; `web/vite.config.js` proxies `/api` and `/health` to the gateway during development.
 - `.env.example` — local secret template; `.loopwhole.example/` contains the persisted-session schema and an example session.
 - `docs/tools/` — behavior and diagnosis guides for `read`, `write`, `edit`, and `bash`; `docs/curl.md` contains live API recipes.
+- `docs/controlled-experiments.md` — isolated OpenCode findings, paired token comparisons, significance, biases, validity threats, and required follow-up testing.
 - `docs/tests/manual.md` — manual OpenCode token-reduction reproduction; `docs/demo/manual.md` — the external sandbox demo workflow and runtime topology.
 - `docs/planning/` — active, deferred, and archived product/optimization specifications.
+- `scripts/setup-workspace.sh` — idempotently adds the `NoC` agent instruction and project-scoped Claude Code, Codex, and OpenCode MCP configuration to a target workspace.
 - `scripts/build_demo_session.py` — generates the committed example session fixture; `scripts/build_mock_benchmark.py` generates the paired mock SWE-bench fixture.
 - `benchmark/` — SWE-bench prediction/evaluation workflow; `build_benchmark_results.py` pairs evaluator outcomes with session dumps for the frontend, with tests in `test_build_benchmark_results.py`.
 

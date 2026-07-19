@@ -146,7 +146,7 @@ STORE_DIFF_TEXT = """@@ store.rs (baseline sha256:{old} -> current sha256:{new})
 # --- Bash: same command always executes; only delivery is compacted ---------
 # The MCP `bash` tool spawns an allowlisted program directly (no shell). The
 # original pane is the real bounded stdout/stderr; the intercepted pane is the
-# canonical Cargo-test projection (first run) or an unchanged marker (repeat).
+# canonical Cargo-test projection (first run) or NoC (repeat).
 
 CARGO_TEST_RAW = """   Compiling warp-mcp-gateway v0.1.0 (/home/dev/warp-mcp-gateway)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 4.21s
@@ -165,18 +165,7 @@ CARGO_TEST_CANONICAL = """Cargo test: PASSED
 [Exit code: 0]"""
 
 
-def suppressed_stub(seq_first_seen: int, h: str) -> str:
-    return (
-        f"[loopey] file unchanged since seq {seq_first_seen} "
-        f"(baseline {h}); 0 bytes re-sent to the model"
-    )
-
-
-def command_unchanged_stub(seq_first_seen: int, label: str) -> str:
-    return (
-        f"[loopey] command output unchanged since seq {seq_first_seen} "
-        f"({label}); 0 bytes re-sent to the model"
-    )
+NO_CHANGES = "NoC"
 
 
 # --- Build the tool-call ledger ---------------------------------------------
@@ -239,12 +228,12 @@ add_call(3, "read", "src/schema.rs", "success", "full", "no_baseline_observed",
 # 4: re-read main.rs (unchanged) -> suppressed
 add_call(4, "read", "src/main.rs", "success", "unchanged", "hash_match_since_seq_1",
          h_main, h_main,
-         {"path": "src/main.rs"}, MAIN_RS, suppressed_stub(1, h_main), 3)
+         {"path": "src/main.rs"}, MAIN_RS, NO_CHANGES, 3)
 
 # 5: re-read store.rs (unchanged) -> suppressed
 add_call(5, "read", "src/store.rs", "success", "unchanged", "hash_match_since_seq_2",
          h_store, h_store,
-         {"path": "src/store.rs"}, STORE_RS, suppressed_stub(2, h_store), 3)
+         {"path": "src/store.rs"}, STORE_RS, NO_CHANGES, 3)
 
 # 6: write schema.rs (adds decision_reason field) -> passthrough
 write_confirmation = f"Successfully wrote {nbytes(SCHEMA_RS_V2)} bytes to src/schema.rs"
@@ -288,11 +277,11 @@ add_call(10, "bash", "cargo test", "success", "compressed", "no_command_baseline
 
 # 11: run identical `cargo test` again -> executes again, output unchanged
 # The command runs a second time (not skipped); the canonical result and exit
-# code match the baseline, so only a short unchanged marker is delivered.
+# code match the baseline, so only NoC is delivered.
 add_call(11, "bash", "cargo test", "success", "unchanged", "command_output_unchanged",
          h_cargo, h_cargo,
          {"program": "cargo", "args": ["test"]},
-         CARGO_TEST_RAW, command_unchanged_stub(10, "cargo test"), 3980)
+         CARGO_TEST_RAW, NO_CHANGES, 3980)
 
 
 # --- Totals (mirrors store.rs) ----------------------------------------------

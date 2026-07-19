@@ -20,6 +20,6 @@ Perform exactly these steps:
 
 2. Call Loopwhole `bash_edit` exactly once using the command ID returned by step 1, with `old_text: before` and `new_text: after`.
 3. Call Loopwhole `bash` exactly once using only the new command ID returned by step 2. Do not resend program, args, cwd, or stdin.
-4. Stop. Report whether `bash_edit` ran the edited script and the final call returned an unchanged marker.
+4. Stop. Report whether `bash_edit` ran the edited script and the final call returned exactly `NoC`.
 
 Expected gateway decisions: `compressed`, `compressed`, then `unchanged`. The runner will fail unless `bash_edit` has positive input-token savings, returns a different command ID, the final call references that new ID, and the scenario has positive total savings.

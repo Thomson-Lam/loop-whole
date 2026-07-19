@@ -154,10 +154,7 @@ impl Gateway {
                                 && previous.exit_code == output.exit_code.unwrap_or(-1) =>
                         {
                             (
-                                format!(
-                                    "Command returned the same output as last run.\n[Exit code: {}]",
-                                    output.exit_code.unwrap_or(-1)
-                                ),
+                                "NoC".to_string(),
                                 "unchanged",
                                 "command_output_unchanged",
                                 Some(previous.raw_output_hash.clone()),
@@ -171,10 +168,7 @@ impl Gateway {
                                 && !output.was_truncated =>
                         {
                             (
-                                format!(
-                                    "Command had no relevant result changes after normalization.\n[Exit code: {}]",
-                                    output.exit_code.unwrap_or(-1)
-                                ),
+                                "NoC".to_string(),
                                 "unchanged",
                                 "canonical_command_output_unchanged",
                                 Some(previous.raw_output_hash.clone()),
@@ -293,7 +287,7 @@ impl Gateway {
 #[tool_router(router = tool_router)]
 impl Gateway {
     #[tool(
-        description = "Read a UTF-8 text file inside the workspace. The first request returns the requested view; repeated identical requests return only changes or an unchanged marker. Output is limited to 2,000 lines or 50KB."
+        description = "Read a UTF-8 text file inside the workspace. A repeated matching view returns changes or `NoC` (no relevant change). Output is limited to 2,000 lines or 50KB."
     )]
     async fn read(&self, Parameters(request): Parameters<ReadRequest>) -> CallToolResult {
         let started = Instant::now();
@@ -315,21 +309,9 @@ impl Gateway {
                 let (intercepted, mode, reason, baseline_hash) = match &previous {
                     Some(previous) if previous.view_hash == output.view_hash => {
                         let (message, reason) = if previous.file_hash == output.file_hash {
-                            (
-                                format!(
-                                    "No changes in the requested view of {}.\nCurrent file hash: {}",
-                                    display_path, output.file_hash
-                                ),
-                                "requested_view_unchanged",
-                            )
+                            ("NoC".to_string(), "requested_view_unchanged")
                         } else {
-                            (
-                                format!(
-                                    "No changes in the requested view of {}. Other portions of the file changed.\nCurrent file hash: {}",
-                                    display_path, output.file_hash
-                                ),
-                                "requested_view_unchanged_file_changed",
-                            )
+                            ("NoC".to_string(), "requested_view_unchanged_file_changed")
                         };
                         (
                             message,
@@ -514,7 +496,7 @@ impl Gateway {
     }
 
     #[tool(
-        description = "Run an allowlisted developer command without shell expansion, or rerun a stored command by command_id. A full command returns a reusable ID. Supports cargo, selected npm and read-only git commands, grep, rg, and python3 scripts supplied through stdin with args [\"-\"]."
+        description = "Run an allowlisted developer command without shell expansion, or rerun one by command_id. Commands always execute; `NoC` means no relevant output change. A full command returns a reusable ID. Supports cargo, selected npm and read-only git commands, grep, rg, and python3 stdin with args [\"-\"]."
     )]
     async fn bash(&self, Parameters(request): Parameters<BashRequest>) -> CallToolResult {
         let started = Instant::now();
@@ -825,7 +807,7 @@ mod tests {
                 }))
                 .await,
         );
-        assert!(repeated.contains("same output"));
+        assert_eq!(repeated, "NoC");
 
         let edited = result_text(
             gateway
@@ -891,12 +873,7 @@ mod tests {
             }))
             .await;
         let result = serde_json::to_value(result).unwrap();
-        assert!(
-            result["content"][0]["text"]
-                .as_str()
-                .unwrap()
-                .contains("No changes")
-        );
+        assert_eq!(result["content"][0]["text"].as_str().unwrap(), "NoC");
         assert_eq!(
             loaded
                 .snapshot()
@@ -942,12 +919,7 @@ mod tests {
         gateway.read(request()).await;
         let unchanged = gateway.read(request()).await;
         let unchanged = serde_json::to_value(unchanged).unwrap();
-        assert!(
-            unchanged["content"][0]["text"]
-                .as_str()
-                .unwrap()
-                .contains("No changes")
-        );
+        assert_eq!(unchanged["content"][0]["text"].as_str().unwrap(), "NoC");
 
         tokio::fs::write(&path, original.replace("value_50 = 50", "value_50 = 500"))
             .await

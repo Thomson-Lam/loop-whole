@@ -116,7 +116,8 @@ assert_results() {
         . | capture("\\[Command ID: (?<id>cmd-[0-9a-f]+)\\]").id;
         .toolCalls as $calls |
         ($calls[0].intercepted.text | command_id) as $first_id |
-        $calls[1].input.command_id == $first_id'
+        $calls[1].input.command_id == $first_id and
+        $calls[1].intercepted.text == "NoC"'
       ;;
     07-bash-edit-id)
       assertion='def command_id:
@@ -127,6 +128,7 @@ assert_results() {
         $first_id != $edited_id and
         $calls[1].input.command_id == $first_id and
         $calls[2].input.command_id == $edited_id and
+        $calls[2].intercepted.text == "NoC" and
         ($calls[0].original.text | contains("before")) and
         ($calls[1].original.text | contains("after"))'
       ;;

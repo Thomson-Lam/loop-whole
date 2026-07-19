@@ -729,13 +729,13 @@
           "totals": {
             "toolInputTokens": 490,
             "originalOutputTokens": 648,
-            "interceptedOutputTokens": 344,
+            "interceptedOutputTokens": 290,
             "withoutRuntimeTokens": 1138,
-            "withRuntimeTokens": 834,
-            "savedTokens": 304,
-            "savingsPercent": 26.71,
+            "withRuntimeTokens": 780,
+            "savedTokens": 358,
+            "savingsPercent": 31.46,
             "withoutRuntimeContextPercent": 0.57,
-            "withRuntimeContextPercent": 0.42
+            "withRuntimeContextPercent": 0.39
           },
           "toolCalls": [
             {
@@ -817,9 +817,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -871,9 +871,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -903,9 +903,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -956,9 +956,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -988,9 +988,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -1068,9 +1068,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -1153,9 +1153,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -1211,9 +1211,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -1297,9 +1297,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2283,13 +2283,13 @@
           "totals": {
             "toolInputTokens": 629,
             "originalOutputTokens": 862,
-            "interceptedOutputTokens": 447,
+            "interceptedOutputTokens": 363,
             "withoutRuntimeTokens": 1491,
-            "withRuntimeTokens": 1076,
-            "savedTokens": 415,
-            "savingsPercent": 27.83,
+            "withRuntimeTokens": 992,
+            "savedTokens": 499,
+            "savingsPercent": 33.47,
             "withoutRuntimeContextPercent": 0.75,
-            "withRuntimeContextPercent": 0.54
+            "withRuntimeContextPercent": 0.5
           },
           "toolCalls": [
             {
@@ -2371,9 +2371,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2425,9 +2425,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2457,9 +2457,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2510,9 +2510,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2542,9 +2542,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2622,9 +2622,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2707,9 +2707,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2765,9 +2765,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2851,9 +2851,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2936,9 +2936,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -2962,9 +2962,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3016,9 +3016,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3048,9 +3048,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3101,9 +3101,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             }
           ],
@@ -3694,13 +3694,13 @@
           "totals": {
             "toolInputTokens": 482,
             "originalOutputTokens": 600,
-            "interceptedOutputTokens": 309,
+            "interceptedOutputTokens": 255,
             "withoutRuntimeTokens": 1082,
-            "withRuntimeTokens": 791,
-            "savedTokens": 291,
-            "savingsPercent": 26.89,
+            "withRuntimeTokens": 737,
+            "savedTokens": 345,
+            "savingsPercent": 31.89,
             "withoutRuntimeContextPercent": 0.54,
-            "withRuntimeContextPercent": 0.4
+            "withRuntimeContextPercent": 0.37
           },
           "toolCalls": [
             {
@@ -3782,9 +3782,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3836,9 +3836,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3868,9 +3868,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3921,9 +3921,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -3953,9 +3953,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -4033,9 +4033,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -4118,9 +4118,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -4176,9 +4176,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -4262,9 +4262,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             }
           ],
@@ -4940,13 +4940,13 @@
           "totals": {
             "toolInputTokens": 474,
             "originalOutputTokens": 622,
-            "interceptedOutputTokens": 331,
+            "interceptedOutputTokens": 277,
             "withoutRuntimeTokens": 1096,
-            "withRuntimeTokens": 805,
-            "savedTokens": 291,
-            "savingsPercent": 26.55,
+            "withRuntimeTokens": 751,
+            "savedTokens": 345,
+            "savingsPercent": 31.48,
             "withoutRuntimeContextPercent": 0.55,
-            "withRuntimeContextPercent": 0.4
+            "withRuntimeContextPercent": 0.38
           },
           "toolCalls": [
             {
@@ -5028,9 +5028,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5082,9 +5082,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5114,9 +5114,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5167,9 +5167,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5199,9 +5199,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5279,9 +5279,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5364,9 +5364,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5422,9 +5422,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -5508,9 +5508,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6357,13 +6357,13 @@
           "totals": {
             "toolInputTokens": 612,
             "originalOutputTokens": 750,
-            "interceptedOutputTokens": 396,
+            "interceptedOutputTokens": 330,
             "withoutRuntimeTokens": 1362,
-            "withRuntimeTokens": 1008,
-            "savedTokens": 354,
-            "savingsPercent": 25.99,
+            "withRuntimeTokens": 942,
+            "savedTokens": 420,
+            "savingsPercent": 30.84,
             "withoutRuntimeContextPercent": 0.68,
-            "withRuntimeContextPercent": 0.5
+            "withRuntimeContextPercent": 0.47
           },
           "toolCalls": [
             {
@@ -6445,9 +6445,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6499,9 +6499,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6531,9 +6531,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6584,9 +6584,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6616,9 +6616,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6696,9 +6696,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6781,9 +6781,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6839,9 +6839,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -6925,9 +6925,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7010,9 +7010,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7036,9 +7036,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7631,13 +7631,13 @@
           "totals": {
             "toolInputTokens": 407,
             "originalOutputTokens": 528,
-            "interceptedOutputTokens": 289,
+            "interceptedOutputTokens": 241,
             "withoutRuntimeTokens": 935,
-            "withRuntimeTokens": 696,
-            "savedTokens": 239,
-            "savingsPercent": 25.56,
+            "withRuntimeTokens": 648,
+            "savedTokens": 287,
+            "savingsPercent": 30.7,
             "withoutRuntimeContextPercent": 0.47,
-            "withRuntimeContextPercent": 0.35
+            "withRuntimeContextPercent": 0.32
           },
           "toolCalls": [
             {
@@ -7719,9 +7719,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7773,9 +7773,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7805,9 +7805,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7858,9 +7858,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7890,9 +7890,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -7970,9 +7970,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -8055,9 +8055,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -8113,9 +8113,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -8766,13 +8766,13 @@
           "totals": {
             "toolInputTokens": 415,
             "originalOutputTokens": 562,
-            "interceptedOutputTokens": 302,
+            "interceptedOutputTokens": 254,
             "withoutRuntimeTokens": 977,
-            "withRuntimeTokens": 717,
-            "savedTokens": 260,
-            "savingsPercent": 26.61,
+            "withRuntimeTokens": 669,
+            "savedTokens": 308,
+            "savingsPercent": 31.53,
             "withoutRuntimeContextPercent": 0.49,
-            "withRuntimeContextPercent": 0.36
+            "withRuntimeContextPercent": 0.33
           },
           "toolCalls": [
             {
@@ -8854,9 +8854,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -8908,9 +8908,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -8940,9 +8940,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -8993,9 +8993,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -9025,9 +9025,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -9105,9 +9105,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -9190,9 +9190,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -9248,9 +9248,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10066,13 +10066,13 @@
           "totals": {
             "toolInputTokens": 522,
             "originalOutputTokens": 678,
-            "interceptedOutputTokens": 351,
+            "interceptedOutputTokens": 291,
             "withoutRuntimeTokens": 1200,
-            "withRuntimeTokens": 873,
-            "savedTokens": 327,
-            "savingsPercent": 27.25,
+            "withRuntimeTokens": 813,
+            "savedTokens": 387,
+            "savingsPercent": 32.25,
             "withoutRuntimeContextPercent": 0.6,
-            "withRuntimeContextPercent": 0.44
+            "withRuntimeContextPercent": 0.41
           },
           "toolCalls": [
             {
@@ -10154,9 +10154,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10208,9 +10208,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10240,9 +10240,9 @@
                 "tokens": 22
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10293,9 +10293,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10325,9 +10325,9 @@
                 "tokens": 34
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10405,9 +10405,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10490,9 +10490,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10548,9 +10548,9 @@
                 "tokens": 26
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10634,9 +10634,9 @@
                 "tokens": 38
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             },
             {
@@ -10719,9 +10719,9 @@
                 "tokens": 30
               },
               "intercepted": {
-                "text": "unchanged result unchanged r",
-                "bytes": 28,
-                "tokens": 7
+                "text": "NoC",
+                "bytes": 3,
+                "tokens": 1
               }
             }
           ],

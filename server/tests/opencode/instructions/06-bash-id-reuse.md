@@ -19,6 +19,6 @@ Perform exactly these steps:
      ```
 
 2. Call Loopwhole `bash` exactly once using only the `command_id` returned by step 1. Do not resend program, args, cwd, or stdin.
-3. Stop. Report whether the second call executed, returned an unchanged marker, and used fewer input and output tokens.
+3. Stop. Report whether the second call executed, returned exactly `NoC`, and used fewer input and output tokens.
 
 Expected gateway decisions: `compressed`, then `unchanged`. The runner will fail unless the second call has positive input-token savings, positive total savings, and references the exact ID returned by the first call.

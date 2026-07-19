@@ -11,7 +11,7 @@ const TOOL_META = {
     label: "Read",
     icon: "▤",
     statement: "Return only what changed — or say nothing changed.",
-    note: "Read remembers the exact view it delivered. Re-reads collapse to a marker or a minimal diff; a first, unseen view is always sent in full.",
+    note: "Read remembers the exact view it delivered. Re-reads collapse to NoC or a minimal diff; a first, unseen view is always sent in full.",
   },
   edit: {
     label: "Edit",
@@ -55,9 +55,9 @@ function captionFor(call) {
   if (deliveryMode === "full")
     return "First time seen — full result delivered, and a baseline is stored for next time.";
   if (deliveryMode === "unchanged" && toolName === "bash")
-    return "Command ran again and returned the identical result — only a short marker is delivered.";
+    return "Command ran again with no relevant result changes — only NoC is delivered.";
   if (deliveryMode === "unchanged")
-    return "Already delivered identically — Loop-Whole returns a one-line marker instead of re-sending the file.";
+    return "No relevant changes — Loop-Whole returns only NoC instead of re-sending the file.";
   if (deliveryMode === "diff")
     return "Changed since the stored baseline — delivered as a minimal diff of just the changed lines.";
   if (deliveryMode === "compressed")

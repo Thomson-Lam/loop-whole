@@ -56,7 +56,7 @@ def build_calls(task_id: str, variant: str, count: int) -> list[dict]:
             intercepted_tokens = original_tokens
         elif repeated and tool in {"read", "bash"}:
             mode = "unchanged" if index % 3 else "diff"
-            intercepted_tokens = 7 if mode == "unchanged" else 13
+            intercepted_tokens = 1 if mode == "unchanged" else 13
         else:
             mode = "full" if tool == "read" else "passthrough"
             intercepted_tokens = original_tokens
@@ -74,7 +74,11 @@ def build_calls(task_id: str, variant: str, count: int) -> list[dict]:
         else:
             input_value = {"path": subject}
         original = payload(f"{tool} result", original_tokens)
-        intercepted = payload(f"{mode} result", intercepted_tokens)
+        intercepted = (
+            {"text": "NoC", "bytes": 3, "tokens": 1}
+            if mode == "unchanged"
+            else payload(f"{mode} result", intercepted_tokens)
+        )
         calls.append(
             {
                 "id": sequence,

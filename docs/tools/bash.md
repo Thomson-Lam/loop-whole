@@ -82,7 +82,7 @@ The current pipeline is:
 3. build the generic DTO by removing ANSI control sequences, normalizing carriage returns, preserving stderr, and attaching exit/timeout status;
 4. for untruncated `cargo test`, attempt a conservative Cargo-test projection;
 5. compare the current result with the immediately previous baseline for that exact command;
-6. return an unchanged marker, a smaller progressive diff, or the current canonical output.
+6. return `NoC`, a smaller progressive diff, or the current canonical output.
 
 The Cargo adapter returns pass/fail, test summaries, exit status, and failure details. Warnings, uncertain parsing, and relevant errors fall back to generic output. No broad npm, pytest, TypeScript, or JSON adapters exist yet.
 
@@ -99,7 +99,7 @@ The current canonical result is returned, plus a command ID for full command inp
 
 ### Exact repeated output
 
-The command executes again. Equal complete raw-output hash and exit code produce:
+The command executes again. Equal complete raw-output hash and exit code return exactly `NoC` and produce:
 
 ```text
 deliveryMode: unchanged
@@ -108,7 +108,7 @@ decisionReason: command_output_unchanged
 
 ### Same relevant canonical result
 
-If raw presentation differs but the untruncated canonical result and exit code match:
+If raw presentation differs but the untruncated canonical result and exit code match, the agent also receives exactly `NoC`:
 
 ```text
 deliveryMode: unchanged

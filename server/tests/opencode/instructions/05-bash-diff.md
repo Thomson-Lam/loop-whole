@@ -20,4 +20,4 @@ Perform exactly these steps:
 3. Call Loopwhole `bash` again using only the `command_id` returned by step 1.
 4. Stop. Report whether the second command returned a progressive change showing the newly failing test.
 
-Expected decisions: bash `compressed`, edit `passthrough`, bash `diff`. The second Cargo invocation must execute and fail; the diff should preserve the failure information.
+Expected decisions: bash `compressed`, edit `passthrough`, then bash `diff` when the diff is smaller or `compressed` when the current canonical failure is smaller. The second Cargo invocation must execute and preserve the failure information.

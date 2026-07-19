@@ -1,41 +1,64 @@
-# Warp MCP Gateway
+# Loop-Whole
 
-A Rust MCP server that exposes context-aware `read`, create-only `write`, exact `edit`, reusable allowlisted `bash`, and `bash_edit` tools, keeps tool-call evidence and runtime baselines, and writes resumable session JSON on shutdown.
+Loop-Whole is an experimental, stateful MCP layer for coding agents. It remembers previously delivered file views and command results, then returns only relevant changes—or the one-token marker `NoC`—while preserving the current execution as evidence. Reusable command IDs and exact stored-command edits also reduce repeated Bash input.
 
-Repeated reads and commands return unchanged markers or progressive diffs. Command output is bounded and known `cargo test` output is projected into a compact result.
+> [!WARNING]
+> Loop-Whole is a hackathon prototype, fresh out of the oven, and is **not ready for production use**. We have horrible telemetry, attached a flashy UI for hackathon purposes, and wrote a lot of JSONs for debugging. The commands that work with our tools via the allowed list of commands is just Rust based commands (yes, we were testing it on its own source code as we were building it, one of the beauties of dev tool development) and basic commands (no Python, JS/TS at all); and the polling API plus frontend child server are wired into the process for the demo purposes. If this were to be used as a dev tool, you would not want the UI and would want much better telemetry than this MVP. More coming soon!
+
+We also did controlled OpenCode experiments to demonstrate the mechanisms behind our tooling design and its limits, including some negative and zero-savings cases. But we truly believe that this has potential to bring big gains, so more tweaks and evals will be done on this beyond HT6. See [`docs/controlled-experiments.md`](docs/controlled-experiments.md).
 
 ## Requirements
 
-- Rust and Cargo
-- An MCP client or coding-agent MCP extension that supports stdio servers
+- Rust and (ideally) Cargo 
+- A MCP client or coding-agent MCP extension that supports stdio servers
 
-## Quick start
+## Quick start - run one script and launch coding agent (Claude Code, Codex, OpenCode) 
 
-First, build the executable:
+For this dev repo, clone and build the Rust crate using absolute paths. Relative paths are easy to misresolve because the coding harness launches Loop-Whole with the UI and the HTTP server as a child process from the target workspace.
 
 ```bash
-cargo build --manifest-path server/Cargo.toml --release
+git clone https://github.com/Thomson-Lam/loop-whole.git
+cd loop-whole
+LOOPWHOLE_ROOT="$(pwd -P)"
+cargo build --manifest-path "$LOOPWHOLE_ROOT/server/Cargo.toml" --release
 ```
 
-The binary is created at:
+From the workspace your agent will edit, run the setup script with the absolute gateway path:
 
-```text
-server/target/release/warp-mcp-gateway
+```bash
+cd /absolute/path/to/your/workspace
+"$LOOPWHOLE_ROOT/scripts/setup-workspace.sh" \
+  "$LOOPWHOLE_ROOT/server/target/release/warp-mcp-gateway"
 ```
 
-Next, configure your MCP client to launch that binary. You normally do **not** start the gateway separately: the client starts it as a child process, sends MCP requests through its stdin, reads MCP responses from its stdout, and stops it when the client session ends.
+The helper setup script currently supports only:
 
-Re-run `cargo build --manifest-path server/Cargo.toml --release` after changing the Rust code.
+- **Claude Code** through `.mcp.json`;
+- **Codex** through `.codex/config.toml`;
+- **OpenCode** through `opencode.json`.
 
-## Configure an MCP client
+It preserves unrelated configuration, adds one `AGENTS.md` line explaining `NoC`, and refuses malformed or conflicting managed sections. The MCP tool descriptions also define `NoC` because not every harness reads `AGENTS.md`. Other MCP clients can still use Loop-Whole through manual stdio configuration below, but they are not covered by the setup script.
+
+Start the supported coding harness from the configured workspace and ask it to use the Loop-Whole MCP tools. Re-run the release build after changing Rust code. Make sure to disable native read, write and Bash tools (including Grep and Glob for OpenCode).
+
+The browser UI is optional and is only for the hackathon demo. If Node.js is available:
+
+```bash
+npm --prefix "$LOOPWHOLE_ROOT/web" install
+npm --prefix "$LOOPWHOLE_ROOT/web" run dev
+```
+
+The MCP client normally starts Loop-Whole itself. Do not separately start another gateway process on the same API address.
+
+## Configure an MCP client manually
 
 Configure your MCP client to launch the binary over stdio. Use absolute paths when the client's working directory is uncertain.
 
 ```json
 {
   "mcpServers": {
-    "warp": {
-      "command": "/absolute/path/to/warp/server/target/release/warp-mcp-gateway",
+    "Loopwhole": {
+      "command": "/absolute/path/to/loop-whole/server/target/release/warp-mcp-gateway",
       "args": [
         "--root",
         "/absolute/path/to/workspace",
@@ -70,9 +93,9 @@ server/target/release/warp-mcp-gateway \
   --context-window-tokens 200000
 ```
 
-This is the command the MCP client launches; it is shown for clarity rather than as a separate startup step. While the client-managed MCP process is running, the same process exposes the HTTP API at the configured address. When the MCP process ends, it saves a session dump to `.loopwhole/sessions/<session-id>.json`.
+FYI: This is the command the MCP client launches under the hood. While the client-managed MCP process is running, the same process exposes the HTTP API at the configured address. When the MCP process ends, it writes a session dump to `.loopwhole/sessions/<session-id>.json`; we have no persistent DB because we only handle tool calls and not full agent traces, so there was no point in using SQLite.
 
-Session IDs may contain ASCII letters, numbers, `.`, `_`, and `-`. To continue that logical gateway session in a later MCP-client process, replace `--session-id demo-session` with `--resume-session demo-session`. The gateway restores prior calls, token totals, read baselines, command baselines, and ID/sequence counters before serving MCP or HTTP. The configured workspace and context-window value must match the dump. Resume the coding agent's own conversation separately; those are two independent session IDs.
+Session IDs may contain ASCII letters, numbers, `.`, `_`, and `-`. To continue that logical gateway session in a later MCP-client process, replace `--session-id demo-session` with `--resume-session demo-session`, which restores prior calls, token totals, read baselines, command baselines, and ID/sequence counters before serving MCP or HTTP. The configured workspace and context-window value must match the dump. Resume the coding agent's own conversation separately; those are two independent session IDs.
 
 Expected startup order:
 
@@ -97,7 +120,7 @@ Expected startup order:
 - `offset` is optional and one-indexed.
 - `limit` is optional.
 - Results are limited to 2,000 lines or 50KB.
-- An identical repeated request returns an unchanged marker or a diff from its previous result.
+- An identical repeated request returns `NoC` or a diff from its previous result.
 - Paths are restricted to the configured workspace, including symlink checks.
 - Detailed reduction behavior: `docs/tools/read.md`.
 
@@ -146,7 +169,7 @@ Expected startup order:
 - A completed full call returns a command ID; rerun it with `{ "command_id": "cmd-..." }` to avoid resending the command.
 - Rejects executable paths, unsupported command families, absolute path arguments, and parent traversal.
 - Times out after 120 seconds and retains at most 256KB from the head and tail of each output stream while hashing the complete drained output.
-- Repeated exact commands are always executed, then compared with the previous result for unchanged or progressive-diff delivery.
+- Repeated exact commands are always executed, then compared with the previous result; unchanged relevant output returns exactly `NoC`.
 - The allowlist is a demo policy, not an operating-system sandbox; allowed programs, Python scripts, and build scripts retain the process user's permissions.
 - Detailed reduction behavior: `docs/tools/bash.md`.
 
@@ -165,7 +188,7 @@ Expected startup order:
 
 ## Dashboard API
 
-The API is read-only and consumed by the Vite/React frontend. It reads from the process's in-memory session store, so the frontend can query it concurrently without a database. A resumed process seeds that store from `.loopwhole/sessions/<session-id>.json`, allowing the existing UI to show prior calls and append live calls without frontend merging. During development, Vite proxies `/api` and `/health` to `127.0.0.1:8787`.
+The read-only polling API and Vite/React frontend are bundled into the gateway lifecycle for the hackathon demonstration. This is not the intended production boundary: the UI observer, telemetry, and MCP execution path should be separated before real deployment. The API reads the process's in-memory session store without a database; resumed sessions seed that store from `.loopwhole/sessions/<session-id>.json`. During development, Vite proxies `/api` and `/health` to `127.0.0.1:8787`.
 
 ### Health
 
@@ -206,40 +229,15 @@ The hackathon frontend hydrates every summary through this endpoint on each poll
 
 ## Token accounting
 
-Counts currently use the explicit approximation:
+Counts currently use the explicit approximation because we are unable to get exact values based on the model tokenizers:
 
 ```text
 estimated tokens = ceil(character count / 4)
 ```
 
-The session comparison covers tool arguments and tool results only. It excludes system prompts, repository instruction files, user messages, assistant prose, and reasoning.
+The session comparison covers tool arguments and tool results only. It excludes system prompts, repository instruction files, user messages, assistant prose, and reasoning since we were purely obsessed with minimzing both the inputs and outputs required of tool calls without degrading agent performance.
 
-For command-ID and `bash_edit` calls, the without-runtime input estimate is the equivalent full command DTO while the with-runtime input estimate is the actual compact request. Original payloads contain the bounded result of the current tool execution. Intercepted payloads contain the exact full, compressed, unchanged, or diff result delivered to the model.
-
-## Current implementation status
-
-Implemented:
-
-- MCP stdio lifecycle and tool discovery;
-- context-aware `read`, create-only `write`, exact `edit`, reusable allowlisted `bash`, and `bash_edit` tools;
-- workspace path enforcement for file tools and command working directories;
-- bounded read and command output;
-- read-view and repeated-command baselines;
-- durable session resume with prior calls, counters, and comparison baselines;
-- unchanged and progressive-diff delivery;
-- generic command normalization, a conservative `cargo test` projection, reusable Python stdin, and exact stored-command edits;
-- session-scoped original/intercepted payload storage;
-- automatic session JSON dump on shutdown;
-- token-estimate totals;
-- polling and detail API endpoints.
-
-Not implemented yet:
-
-- overlapping read-range reasoning;
-- broader command DTO adapters;
-- operating-system command sandboxing;
-- filesystem change watching or prompt injection;
-- silent-failure signals.
+For command-ID and `bash_edit` calls, the without-runtime input estimate is the equivalent full command DTO while the with-runtime input estimate is the actual compact request. Original payloads contain the bounded result of the current tool execution without the DTO, and intercepted payloads mean that they contain the more compact, compressed, unchanged, or diff result delivered to the model.
 
 ## Session dump schema
 
@@ -304,7 +302,7 @@ A committed example schema lives at `.loopwhole.example/session.schema.json`.
 
 ## Logs
 
-Each run writes diagnostics to:
+Development and demo runs write diagnostics to:
 
 ```text
 logs/<session-id>.log
@@ -316,11 +314,11 @@ Every recorded tool call also emits one JSON line containing its delivery mode, 
 grep '^{' logs/<session-id>.log | jq 'select(.event == "tool_call")'
 ```
 
-The `logs/` directory is gitignored. This is the easiest way to inspect server activity when an MCP host hides child-process stderr.
+The `logs/` directory is gitignored. These logs are a development diagnostic surface, not production telemetry: they have no remote collection, retention policy, access controls, alerting, or durable query layer. They are useful when an MCP host hides child-process stderr.
 
-## OpenCode smoke tests
+## Controlled tests
 
-An isolated fixture and instruction-driven runner live in `server/tests/opencode/`:
+The isolated OpenCode suite verifies tool mechanics without claiming that its purpose-built repetition rate represents normal agentic development:
 
 ```bash
 server/tests/opencode/run-smoke.sh 01-read-unchanged
@@ -330,9 +328,9 @@ server/tests/opencode/run-smoke.sh 07-bash-edit-id
 server/tests/opencode/run-smoke.sh all
 ```
 
-Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call log metrics plus shutdown session totals. The command-ID scenarios also fail automatically unless the agent uses the returned IDs correctly and produces positive measured token savings. See `server/tests/opencode/README.md`.
+Each scenario resets an ignored fixture workspace, runs OpenCode with native filesystem and Bash tools disabled, and prints per-call plus shutdown totals. Command-ID scenarios fail automatically unless the agent uses returned IDs correctly and produces positive measured savings. Results, negative cases, methodology, and threats to validity are documented in [`docs/controlled-experiments.md`](docs/controlled-experiments.md). Runner details live in `server/tests/opencode/README.md`.
 
-## Development checks
+## Development
 
 ```bash
 cargo fmt --manifest-path server/Cargo.toml -- --check
