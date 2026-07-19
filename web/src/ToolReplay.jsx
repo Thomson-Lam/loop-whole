@@ -1,243 +1,193 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import LineWaves from "./LineWaves";
-import useLiveSession from "./useLiveSession";
-
-const CALL_MS = 2800;
 
 const TOOL_ORDER = ["read", "edit", "write", "bash", "bash_edit"];
 
-const TOOL_META = {
+const TOOL_STORIES = {
   read: {
     label: "Read",
     icon: "▤",
-    statement: "Return only what changed — or say nothing changed.",
-    note: "Read remembers the exact view it delivered. Re-reads collapse to NoC or a minimal diff; a first, unseen view is always sent in full.",
+    statement: "See only what changed.",
+    steps: [
+      {
+        column: "context",
+        title: "Read settings.js again",
+        detail: "The agent asks for a file it saw earlier.",
+      },
+      {
+        column: "check",
+        title: "Check the saved view",
+        detail: "Has this exact version already been delivered?",
+      },
+      {
+        column: "check",
+        title: "Nothing changed",
+        detail: "The file still matches the saved baseline.",
+        tone: "decision",
+      },
+      {
+        column: "return",
+        title: "NoC",
+        detail: "1 token delivered instead of 84 lines.",
+        comparison: "Normally: the full file returns again",
+        tone: "result",
+      },
+    ],
   },
   edit: {
     label: "Edit",
     icon: "✎",
-    statement: "Replace one exact match without rewriting the whole file.",
-    note: "Edit changes one proven location. Its confirmation is already tiny, so it saves no output tokens here — the payoff appears on the next read of the file.",
+    statement: "Change one exact match.",
+    steps: [
+      {
+        column: "context",
+        title: "Change one line",
+        detail: "Rename timeout to requestTimeout.",
+      },
+      {
+        column: "check",
+        title: "Find the exact text",
+        detail: "Loop-Whole looks for one proven match.",
+      },
+      {
+        column: "check",
+        title: "One match found",
+        detail: "Only that location is changed.",
+        tone: "decision",
+      },
+      {
+        column: "return",
+        title: "Edit applied",
+        detail: "The next read receives only the resulting diff.",
+        comparison: "No whole-file rewrite",
+        tone: "result",
+      },
+    ],
   },
   write: {
     label: "Write",
     icon: "＋",
-    statement: "Create safely; never silently overwrite existing work.",
-    note: "Write is create-only. The confirmation is identical on both sides — its value is safety, not token savings.",
+    statement: "Create without overwriting.",
+    steps: [
+      {
+        column: "context",
+        title: "Create notes.md",
+        detail: "The agent asks to create a new file.",
+      },
+      {
+        column: "check",
+        title: "Check the path",
+        detail: "The file must stay inside the workspace.",
+      },
+      {
+        column: "check",
+        title: "Confirm it is new",
+        detail: "Existing work is never silently replaced.",
+        tone: "decision",
+      },
+      {
+        column: "return",
+        title: "File created",
+        detail: "A short confirmation returns to the agent.",
+        comparison: "Existing file? Refuse to overwrite",
+        tone: "result",
+      },
+    ],
   },
   bash: {
     label: "Bash",
     icon: "»_",
-    statement: "Execute again, then return only the relevant output changes.",
-    note: "Bash always executes — it is never cached or skipped. Loop-Whole canonicalizes the output, then compares it with the previous run.",
+    statement: "Run again; skip repeated noise.",
+    steps: [
+      {
+        column: "context",
+        title: "Run the tests again",
+        detail: "The agent repeats the same command.",
+      },
+      {
+        column: "check",
+        title: "Execute the command",
+        detail: "Bash always runs. Nothing is skipped.",
+      },
+      {
+        column: "check",
+        title: "Compare the result",
+        detail: "The relevant test result has not changed.",
+        tone: "decision",
+      },
+      {
+        column: "return",
+        title: "NoC",
+        detail: "1 token delivered instead of the repeated test log.",
+        comparison: "Normally: the noisy log returns again",
+        tone: "result",
+      },
+    ],
   },
   bash_edit: {
     label: "Command edit",
     icon: "⌁",
-    statement: "Change one stored command fragment instead of resending it.",
-    note: "Command edit applies one exact replacement to saved arguments or stdin, executes the result, and returns a new reusable command ID.",
+    statement: "Reuse a saved command.",
+    steps: [
+      {
+        column: "context",
+        title: "Reuse command #7",
+        detail: "The agent starts from a command it already ran.",
+      },
+      {
+        column: "check",
+        title: "Change one argument",
+        detail: "Replace old_test with new_test.",
+      },
+      {
+        column: "check",
+        title: "Run the updated command",
+        detail: "The edited command executes normally.",
+        tone: "decision",
+      },
+      {
+        column: "return",
+        title: "Result + new command ID",
+        detail: "The updated command can be reused again.",
+        comparison: "No need to resend the full command",
+        tone: "result",
+      },
+    ],
   },
 };
 
-const MODE_LABEL = {
-  full: "FULL",
-  unchanged: "UNCHANGED",
-  diff: "DIFF",
-  passthrough: "PASSTHROUGH",
-  compressed: "COMPRESSED",
-  error: "ERROR",
-};
-
-// Per-call, mode-accurate caption. Kept honest: never claims savings that the
-// backend does not produce (write/edit confirmations are identical both sides).
-function captionFor(call) {
-  const { toolName, deliveryMode } = call;
-  if (deliveryMode === "full")
-    return "First time seen — full result delivered, and a baseline is stored for next time.";
-  if (deliveryMode === "unchanged" && toolName === "bash")
-    return "Command ran again with no relevant result changes — only NoC is delivered.";
-  if (deliveryMode === "unchanged")
-    return "No relevant changes — Loop-Whole returns only NoC instead of re-sending the file.";
-  if (deliveryMode === "diff")
-    return "Changed since the stored baseline — delivered as a minimal diff of just the changed lines.";
-  if (deliveryMode === "compressed")
-    return "First run of this command — noisy output is projected to its canonical result.";
-  if (deliveryMode === "passthrough" && toolName === "edit")
-    return "One exact replacement applied — confirmation passes through unchanged; the diff shows up on the next read.";
-  if (deliveryMode === "passthrough")
-    return "Create-only — confirmation passes through unchanged. Safety, not token savings.";
-  return "";
-}
-
-function classifyLine(line) {
-  if (line.startsWith("@@")) return "rl-hunk";
-  if (line.startsWith("[loop-whole]")) return "rl-loop-whole";
-  if (line.startsWith("+")) return "rl-add";
-  if (line.startsWith("-")) return "rl-del";
-  return "rl-ctx";
-}
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-  return reduced;
-}
-
-// rAF interpolation toward `target`. Skips animation when reduced-motion is on
-// or before the section has started, so the value is always readable.
-function useAnimatedNumber(target, active, reduced, duration = 650) {
-  const [val, setVal] = useState(target);
-  const fromRef = useRef(target);
-  const rafRef = useRef(0);
-  useEffect(() => {
-    if (reduced || !active) {
-      setVal(target);
-      fromRef.current = target;
-      return;
-    }
-    const from = fromRef.current;
-    const start = performance.now();
-    cancelAnimationFrame(rafRef.current);
-    const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setVal(from + (target - from) * eased);
-      if (t < 1) rafRef.current = requestAnimationFrame(tick);
-      else fromRef.current = target;
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [target, active, reduced, duration]);
-  return val;
-}
+const COLUMNS = [
+  { id: "context", label: "Agent context" },
+  { id: "check", label: "Loop-Whole" },
+  { id: "return", label: "Delivered to agent" },
+];
 
 export default function ToolReplay() {
-  const { session, error } = useLiveSession();
-  const calls = useMemo(
-    () =>
-      [...(session?.toolCalls ?? [])].sort(
-        (a, b) => a.sequence - b.sequence
-      ),
-    [session]
-  );
+  const [tool, setTool] = useState("read");
+  const [step, setStep] = useState(0);
+  const story = TOOL_STORIES[tool];
+  const atStart = step === 0;
+  const atEnd = step === story.steps.length - 1;
 
-  const reduced = usePrefersReducedMotion();
-  const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [started, setStarted] = useState(false);
-  const sectionRef = useRef(null);
-
-  // Autoplay once when the section scrolls into view.
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setStarted(true);
-            // Autoplay disabled per user request:
-            // if (!reduced) setPlaying(true);
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.35 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [reduced]);
-
-  // Advance the tape while playing; stop on the final frame.
-  useEffect(() => {
-    if (!playing || reduced) return;
-    if (index >= calls.length - 1) {
-      setPlaying(false);
-      return;
-    }
-    const id = setTimeout(
-      () => setIndex((i) => Math.min(calls.length - 1, i + 1)),
-      CALL_MS
-    );
-    return () => clearTimeout(id);
-  }, [playing, index, calls.length, reduced]);
-
-  useEffect(() => {
-    setIndex((i) => Math.max(0, Math.min(i, calls.length - 1)));
-  }, [calls.length]);
-
-  const call = calls[index];
-  const origTok = call?.original.tokens ?? 0;
-  const intTok = call?.intercepted.tokens ?? 0;
-  const savedTok = origTok - intTok;
-  const savedPct = origTok > 0 ? Math.round((savedTok / origTok) * 100) : 0;
-  const inputSaved =
-    (call?.originalInputTokens ?? call?.inputTokens ?? 0) -
-    (call?.inputTokens ?? 0);
-  const keptRatio = origTok > 0 ? Math.max(intTok / origTok, 0.03) : 1;
-
-  // Cumulative tool-output savings through the current call (output tokens only,
-  // matching original.tokens - intercepted.tokens; labelled as such in the UI).
-  const cum = useMemo(() => {
-    let o = 0;
-    let it = 0;
-    for (let i = 0; i <= index && i < calls.length; i++) {
-      o += calls[i].original.tokens;
-      it += calls[i].intercepted.tokens;
-    }
-    return o > 0 ? ((o - it) / o) * 100 : 0;
-  }, [index, calls]);
-
-  const animInt = useAnimatedNumber(intTok, started, reduced);
-  const animCum = useAnimatedNumber(cum, started, reduced);
-
-  if (!session) {
-    return (
-      <section className="replay">
-        <div className="wrap">
-          {error ? `API unavailable: ${error.message}` : "Loading session…"}
-        </div>
-      </section>
-    );
-  }
-  if (!call) {
-    return (
-      <section className="replay">
-        <div className="wrap">Waiting for tool calls…</div>
-      </section>
-    );
-  }
-
-  const atStart = index === 0;
-  const atEnd = index === calls.length - 1;
-
-  const go = (i) => {
-    setIndex(Math.max(0, Math.min(calls.length - 1, i)));
+  const selectTool = (nextTool) => {
+    setTool(nextTool);
+    setStep(0);
   };
-  const restart = () => {
-    setIndex(0);
-    if (!reduced) setPlaying(true);
-  };
-  const jumpTo = (tool) => {
-    const i = calls.findIndex((c) => c.toolName === tool);
-    if (i >= 0) {
-      setPlaying(false);
-      setIndex(i);
-    }
-  };
-
-  const origLines = call.original.text.replace(/\n$/, "").split("\n");
-  const intLines = call.intercepted.text.replace(/\n$/, "").split("\n");
 
   return (
-    <section className="replay" id="replay" ref={sectionRef} style={{ position: "relative" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "400px", zIndex: 0, opacity: 0.6, pointerEvents: "none" }}>
+    <section className="replay" id="replay" style={{ position: "relative" }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "400px",
+          zIndex: 0,
+          opacity: 0.6,
+          pointerEvents: "none",
+        }}
+      >
         <LineWaves
           speed={0.5}
           innerLineCount={21}
@@ -254,208 +204,142 @@ export default function ToolReplay() {
           mouseInfluence={2}
         />
       </div>
+
       <div className="wrap" style={{ position: "relative", zIndex: 1 }}>
         <div className="section-head reveal in">
-          <span className="mono kicker">Context-aware tools</span>
-          <h2>Your tools remember what the agent has already seen.</h2>
-          <p>
-            Loop-Whole runs the real operation, keeps the original evidence, and
-            sends the smallest safe result back to the model. Watch a real
-            session replay — <b>left is what the tool returned</b>,{" "}
-            <b>right is what the model received</b>.
-          </p>
+          <h2>Example</h2>
         </div>
 
-        <div
-          className="replay-tabs"
-          role="tablist"
-          aria-label="Tool demonstrations"
-        >
-          {TOOL_ORDER.filter((tool) =>
-            calls.some((candidate) => candidate.toolName === tool)
-          ).map((tool) => {
-            const m = TOOL_META[tool];
-            if (!m) return null;
-            const active = call.toolName === tool;
+        <div className="replay-tabs" role="tablist" aria-label="Tool demonstrations">
+          {TOOL_ORDER.map((toolId) => {
+            const item = TOOL_STORIES[toolId];
+            const active = tool === toolId;
             return (
               <button
-                key={tool}
+                key={toolId}
+                type="button"
                 role="tab"
                 aria-selected={active}
                 className={`replay-tab${active ? " active" : ""}`}
-                onClick={() => jumpTo(tool)}
+                onClick={() => selectTool(toolId)}
               >
                 <span className="replay-tab-top">
                   <span className="replay-tab-icon mono" aria-hidden="true">
-                    {m.icon}
+                    {item.icon}
                   </span>
-                  <span className="replay-tab-name">{m.label}</span>
+                  <span className="replay-tab-name">{item.label}</span>
                 </span>
-                <span className="replay-tab-stmt">{m.statement}</span>
+                <span className="replay-tab-stmt">{item.statement}</span>
               </button>
             );
           })}
         </div>
 
-        <div className="replay-stage">
-          <div className="replay-bar">
-            <div className="replay-bar-left">
-              <span className={`badge badge-${call.deliveryMode}`}>
-                {MODE_LABEL[call.deliveryMode] ||
-                  call.deliveryMode.toUpperCase()}
-              </span>
-              <span className="replay-tool mono">{call.toolName}</span>
-              <span className="replay-subject mono">
-                {call.subjectPath || "—"}
-              </span>
-            </div>
-            <div className="replay-bar-right mono">
-              {inputSaved > 0 && (
-                <span className="reduction">input −{inputSaved} tok · </span>
-              )}
-              Step {index + 1} / {calls.length}
-            </div>
+        {tool === "edit" ? (
+          <div className="replay-stage storyboard-placeholder" role="tabpanel">
+            no changes made to edit tool :)
+          </div>
+        ) : (
+          <div className="replay-stage storyboard" role="tabpanel">
+          <div className="storyboard-head">
+            <span className="mono">{story.label} walkthrough</span>
+            <span className="mono">
+              Step {step + 1} / {story.steps.length}
+            </span>
           </div>
 
-          <div className="replay-split">
-            <div className="replay-pane">
-              <div className="replay-pane-head">
-                <span className="mono">Original tool output</span>
-                <span className="replay-tok mono">{origTok} tok</span>
-              </div>
-              <pre className="replay-code" key={`o-${index}`}>
-                {origLines.map((line, i) => (
-                  <span
-                    key={i}
-                    className="replay-line"
-                    style={
-                      reduced
-                        ? undefined
-                        : { animationDelay: `${Math.min(i * 12, 620)}ms` }
-                    }
-                  >
-                    {line || " "}
-                  </span>
-                ))}
-              </pre>
-            </div>
+          <div className="storyboard-grid">
+            {COLUMNS.map((column, columnIndex) => {
+              const visibleSteps = story.steps
+                .slice(0, step + 1)
+                .map((item, index) => ({ ...item, index }))
+                .filter((item) => item.column === column.id);
 
-            <div className="replay-pane replay-pane-int">
-              <div className="replay-pane-head">
-                <span className="mono">Delivered to model</span>
-                <span className="replay-tok mono">
-                  {Math.round(animInt)} tok
-                  {savedTok > 0 && (
-                    <span className="replay-reduction"> −{savedPct}%</span>
+              return (
+                <div className="storyboard-column-wrap" key={column.id}>
+                  <div className={`storyboard-column ${column.id}`}>
+                    <span className="storyboard-column-label mono">{column.label}</span>
+
+                    {column.id === "context" && (
+                      <div className="context-stack" aria-hidden="true">
+                        <span>System instructions</span>
+                        <span>Current task</span>
+                      </div>
+                    )}
+
+                    <div className="storyboard-layers">
+                      {visibleSteps.map((item) => (
+                        <article
+                          className={`storyboard-card ${item.tone || ""}${
+                            item.index === step ? " is-new" : ""
+                          }`}
+                          key={`${tool}-${item.index}`}
+                        >
+                          <strong>{item.title}</strong>
+                          <p>{item.detail}</p>
+                          {item.comparison && <small>{item.comparison}</small>}
+                        </article>
+                      ))}
+
+                      {visibleSteps.length === 0 && (
+                        <div className="storyboard-empty">Next step</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {columnIndex < COLUMNS.length - 1 && (
+                    <span className="storyboard-arrow" aria-hidden="true">→</span>
                   )}
-                </span>
-              </div>
-              <pre
-                className={`replay-code replay-code-int${
-                  reduced ? "" : " delayed"
-                }`}
-                key={`i-${index}`}
-              >
-                {intLines.map((line, i) => (
-                  <span key={i} className={`replay-line ${classifyLine(line)}`}>
-                    {line || " "}
-                  </span>
-                ))}
-              </pre>
-            </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="replay-rail">
-            <div className="replay-track" aria-hidden="true">
-              <div className="replay-fill-orig" />
-              <div
-                className="replay-fill-kept"
-                style={{ width: `${keptRatio * 100}%` }}
-              />
+          <div className="storyboard-foot">
+            <div className="storyboard-progress" aria-label={`Step ${step + 1} of ${story.steps.length}`}>
+              {story.steps.map((item, index) => (
+                <span
+                  className={index <= step ? "complete" : ""}
+                  key={item.title}
+                />
+              ))}
             </div>
-            <div className="replay-rail-meta mono">
-              {savedTok > 0 ? (
-                <span>
-                  {origTok} → {intTok} output tokens ·{" "}
-                  <span className="replay-reduction">
-                    {savedTok} saved on this call
-                  </span>
-                </span>
-              ) : (
-                <span>
-                  {origTok} → {intTok} output tokens ·{" "}
-                  <span className="replay-flat">0 saved on this call</span>
-                </span>
-              )}
-            </div>
-          </div>
 
-          <p className="replay-caption">{captionFor(call)}</p>
-
-          <div className="replay-foot">
-            <div className="replay-controls">
+            <div className="storyboard-controls">
               <button
-                className="replay-ctrl"
-                onClick={restart}
-                aria-label="Restart"
-                title="Restart"
-              >
-                ⟲
-              </button>
-              <button
-                className="replay-ctrl"
-                onClick={() => {
-                  setPlaying(false);
-                  go(index - 1);
-                }}
+                className="btn btn-ghost"
+                type="button"
                 disabled={atStart}
-                aria-label="Previous step"
-                title="Previous"
+                onClick={() => setStep((current) => Math.max(0, current - 1))}
               >
-                ◀
+                ← Previous
               </button>
               <button
-                className="replay-ctrl replay-ctrl-play"
-                onClick={() => {
-                  if (atEnd) restart();
-                  else setPlaying((p) => !p);
-                }}
-                aria-label={playing ? "Pause" : "Play"}
-                title={playing ? "Pause" : "Play"}
+                className="btn btn-primary"
+                type="button"
+                onClick={() =>
+                  setStep((current) =>
+                    atEnd ? 0 : Math.min(story.steps.length - 1, current + 1)
+                  )
+                }
               >
-                {playing ? "❚❚" : "▶"}
+                {atEnd ? `Restart ${story.label}` : `Next: ${story.steps[step + 1].title}`} →
               </button>
-              <button
-                className="replay-ctrl"
-                onClick={() => {
-                  setPlaying(false);
-                  go(index + 1);
-                }}
-                disabled={atEnd}
-                aria-label="Next step"
-                title="Next"
-              >
-                ▶
-              </button>
-            </div>
-
-            <div className="replay-cum">
-              <span className="replay-cum-num">{animCum.toFixed(0)}%</span>
-              <span className="replay-cum-lbl mono">
-                tool output saved · session so far
-              </span>
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
         <p className="replay-fine mono">
-          Illustrative replay from the smoke fixture. Token counts are
-          estimates (⌈characters ÷ 4⌉), not model-tokenizer tokens. Loop-Whole
-          reduces future tool responses; it does not rewrite existing model
-          history.
+          Token counts vary by tokenizer. Model history stays untouched.
         </p>
+
+        <div className="cta-row">
+          <a className="btn btn-primary" href="#/app">
+            Launch →
+          </a>
+        </div>
       </div>
     </section>
   );
 }
-

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import Antigravity from "./Antigravity";
+import ContextTimeline from "./ContextTimeline";
 import ToolReplay from "./ToolReplay";
 
 export default function Landing() {
@@ -41,18 +42,12 @@ export default function Landing() {
 
       <header>
         <div className="wrap nav">
-          <div className="brand">
-            <span className="mark">✳</span> Loop-Whole
-          </div>
           <nav className="nav-links">
             <a href="#how">How it works</a>
             <a href="#replay">Example</a>
             <a href="#/benchmarks">Benchmarks</a>
-            <a href="#/app">Dashboard</a>
           </nav>
-          <a className="btn btn-primary" href="#/app">
-            Launch app →
-          </a>
+          <img className="event-logo" src="/ht6.svg" alt="Hack the 6ix" />
         </div>
       </header>
 
@@ -79,16 +74,11 @@ export default function Landing() {
           </div>
 
           <div className="wrap hero-inner">
-            <span className="spark">✳</span>
-            <span className="mono hero-kicker">
-              Context runtime · MCP-native · agent-agnostic
-            </span>
-
             <h1>Loop-Whole</h1>
             <p className="sub">
-              A repository-state runtime that gives coding agents{" "}
-              <b>only the context they need</b> — and surfaces evidence when they
-              fail silently. No new prompts. No workflow changes.
+              An agent-agnostic repository runtime that <b>cuts AI compute costs</b>{" "}
+              and surfaces <b>silent execution failures</b> — without new prompts
+              or lossy summarization.
             </p>
 
             <div className="cta-row">
@@ -107,22 +97,16 @@ export default function Landing() {
           <div className="wrap">
             <div className="stat-strip reveal">
               <div className="stat">
-                <div className="num">
-                  <span>42%</span>
-                </div>
-                <div className="lbl mono">Fewer tokens delivered</div>
+                <div className="num">Reduce token costs</div>
+                <div className="lbl mono">With no performance degradation</div>
               </div>
               <div className="stat">
-                <div className="num">
-                  0<span>×</span>
-                </div>
-                <div className="lbl mono">Lossy summarization</div>
+                <div className="num">0 LLM calls</div>
+                <div className="lbl mono">Relative compaction</div>
               </div>
               <div className="stat">
-                <div className="num">
-                  1<span>·</span>drop-in
-                </div>
-                <div className="lbl mono">MCP gateway</div>
+                <div className="num">Plug and play</div>
+                <div className="lbl mono">Experience</div>
               </div>
             </div>
           </div>
@@ -131,45 +115,10 @@ export default function Landing() {
         <section className="how" id="how">
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="mono kicker">How it works</span>
-              <h2>Right state, not more context.</h2>
-              <p>
-                Loop-Whole sits between your agent and the repository as an MCP
-                gateway. It remembers what the agent has already seen and
-                delivers the smallest correct result.
-              </p>
+              <h2>How it works</h2>
             </div>
 
-            <div className="steps">
-              <div className="step reveal">
-                <span className="bar" />
-                <div className="idx mono">01 — Intercept</div>
-                <h3>Route every tool call</h3>
-                <p>
-                  Reads and writes flow through the Rust MCP gateway. Your agent
-                  works exactly as before — nothing to configure.
-                </p>
-              </div>
-              <div className="step reveal">
-                <span className="bar" />
-                <div className="idx mono">02 — Compact</div>
-                <h3>Send only what changed</h3>
-                <p>
-                  Unchanged files are suppressed, edits are delivered as diffs,
-                  and unseen files return in full. Deterministic, never lossy.
-                </p>
-              </div>
-              <div className="step reveal">
-                <span className="bar" />
-                <div className="idx mono">03 — Reveal</div>
-                <h3>See savings &amp; evidence</h3>
-                <p>
-                  A live dashboard shows tokens saved per call and flags evidence
-                  of silent failures — stale state, retry loops, unresolved
-                  tests.
-                </p>
-              </div>
-            </div>
+            <ContextTimeline />
           </div>
         </section>
 
@@ -178,10 +127,7 @@ export default function Landing() {
 
       <footer>
         <div className="wrap foot">
-          <div className="brand">
-            <span className="mark">✳</span> Loop-Whole
-          </div>
-          <span className="mono">Built at Hack the 6ix · 2026</span>
+          <span className="mono">Made with ❤️ by Henrique, Thomson, Jonathan @ HT6 26</span>
         </div>
       </footer>
     </>
