@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "Loopwhole": {
+      "type": "local",
+      "command": [
+        "/Users/tlam/warp/target/debug/warp-mcp-gateway",
+        "--root",
+        "/Users/tlam/warp",
+        "--api-addr",
+        "127.0.0.1:8787",
+        "--session-id",
+        "opencode-loopwhole"
+      ],
+      "enabled": true,
+      "timeout": 15000
+    }
+  }
+}
