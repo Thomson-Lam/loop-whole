@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import useLiveSession from "./useLiveSession";
+import session from "./data/demo-session.json";
 import LineWaves from "./LineWaves";
 
 const CALL_MS = 2800;
@@ -112,13 +112,9 @@ function useAnimatedNumber(target, active, reduced, duration = 650) {
 }
 
 export default function ToolReplay() {
-  const { session, error } = useLiveSession();
   const calls = useMemo(
-    () =>
-      [...(session?.toolCalls ?? [])].sort(
-        (a, b) => a.sequence - b.sequence
-      ),
-    [session]
+    () => [...session.toolCalls].sort((a, b) => a.sequence - b.sequence),
+    []
   );
 
   const reduced = usePrefersReducedMotion();
@@ -188,22 +184,7 @@ export default function ToolReplay() {
   const animInt = useAnimatedNumber(intTok, started, reduced);
   const animCum = useAnimatedNumber(cum, started, reduced);
 
-  if (!session) {
-    return (
-      <section className="replay">
-        <div className="wrap">
-          {error ? `API unavailable: ${error.message}` : "Loading session…"}
-        </div>
-      </section>
-    );
-  }
-  if (!call) {
-    return (
-      <section className="replay">
-        <div className="wrap">Waiting for tool calls…</div>
-      </section>
-    );
-  }
+
 
   const atStart = index === 0;
   const atEnd = index === calls.length - 1;
@@ -435,7 +416,7 @@ export default function ToolReplay() {
         </div>
 
         <p className="replay-fine mono">
-          Live replay from the current gateway session. Token counts are
+          Illustrative replay from the smoke fixture. Token counts are
           estimates (⌈characters ÷ 4⌉), not model-tokenizer tokens. Loop-Whole
           reduces future tool responses; it does not rewrite existing model
           history.
