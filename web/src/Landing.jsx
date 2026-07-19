@@ -46,7 +46,7 @@ export default function Landing() {
           </div>
           <nav className="nav-links">
             <a href="#how">How it works</a>
-            <a href="#replay">Live replay</a>
+            <a href="#replay">Example</a>
             <a href="#/benchmarks">Benchmarks</a>
             <a href="#/app">Dashboard</a>
           </nav>

@@ -235,4 +235,5 @@ docs/handoff/
 /server/tests/opencode/workspace/
 /server/tests/opencode/fixture/target/
 /server/tests/opencode/fixture/Cargo.lock
+!/web/src/data/benchmark-results.json
 

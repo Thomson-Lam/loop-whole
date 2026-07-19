@@ -22,8 +22,8 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `docs/tools/` — behavior and diagnosis guides for `read`, `write`, `edit`, and `bash`; `docs/curl.md` contains live API recipes.
 - `docs/tests/manual.md` — manual OpenCode token-reduction reproduction; `docs/demo/manual.md` — the external sandbox demo workflow and runtime topology.
 - `docs/planning/` — active, deferred, and archived product/optimization specifications.
-- `scripts/build_demo_session.py` — generates the committed example session fixture.
-- `benchmark/` — SWE-bench submodule boundary plus prediction-generation and benchmark testing notes.
+- `scripts/build_demo_session.py` — generates the committed example session fixture; `scripts/build_mock_benchmark.py` generates the paired mock SWE-bench fixture.
+- `benchmark/` — SWE-bench prediction/evaluation workflow; `build_benchmark_results.py` pairs evaluator outcomes with session dumps for the frontend, with tests in `test_build_benchmark_results.py`.
 
 ### Backend
 
@@ -43,9 +43,9 @@ Unit tests are colocated in `server/src/commands.rs`, `server/src/mcp.rs`, `serv
 
 - `web/INDEX.md` — frontend component map and live API integration boundary.
 - `web/src/main.jsx` and `web/src/App.jsx` — React bootstrap and hash-based landing, dashboard, and benchmark routing.
-- `web/src/Landing.jsx` and `web/src/ToolReplay.jsx` — marketing page and live current-session replay.
-- `web/src/Dashboard.jsx` — per-call original/intercepted comparison and cumulative context metrics.
-- `web/src/Benchmarks.jsx` — bundled benchmark ingestion and Chart.js token comparisons.
+- `web/src/Landing.jsx` and `web/src/ToolReplay.jsx` — marketing page and bundled demo-session replay.
+- `web/src/Dashboard.jsx` — bundled per-call original/intercepted comparison and cumulative context metrics.
+- `web/src/Benchmarks.jsx` and `web/src/data/benchmark-results.json` — paired SWE-bench non-regression summary, selectable task ledger, and mock session-shaped fixture.
 - `web/src/api.js` and `web/src/useLiveSession.js` — current-session/detail hydration and polling.
 - `web/src/Antigravity.jsx` — Three.js hero effect; `web/src/index.css` contains shared landing, replay, and dashboard styles.
 - `web/index.html`, `web/eslint.config.js`, and `web/vite.config.js` — browser entry, linting, build, and development-server configuration.

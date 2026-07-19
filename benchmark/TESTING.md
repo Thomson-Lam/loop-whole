@@ -37,3 +37,30 @@ python -m swebench.harness.run_evaluation \
     --namespace '' \
     --run_id more_tests
 ```
+
+## Build and test frontend evidence
+
+Run the standard-library bridge tests from the repository root:
+
+```bash
+python3 -m unittest benchmark/test_build_benchmark_results.py
+```
+
+Build a compact frontend artifact from matched evaluator reports and preserved
+session roots:
+
+```bash
+python3 benchmark/build_benchmark_results.py \
+    --baseline-sessions /path/to/baseline/sessions \
+    --mcp-sessions /path/to/mcp/sessions \
+    --baseline-report /path/to/baseline-report.json \
+    --mcp-report /path/to/mcp-report.json \
+    --output web/src/data/benchmark-results.json
+```
+
+Then validate the consumer:
+
+```bash
+npm --prefix web run lint
+npm --prefix web run build
+```
