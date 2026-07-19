@@ -4,14 +4,13 @@
 **One-Liner:** An enterprise-grade, agent-agnostic repository runtime that reduces AI compute costs and surfaces silent execution failures—powered by Gemini and orchestrated via Backboard.
 
 **The Problem:** Coding agents are token-inefficient (re-reading unchanged files) and difficult to supervise (silently failing, skipping work, or drifting out of scope).
-**The Solution:** We have built a proxy layer and SaaS dashboard that intercepts agent tool calls, compacts context deterministically (The Green AI Engine), and runs a flight-recorder heuristic to catch agent failures before they commit.
+**The Solution:** We have built a proxy layer and web dashboard that intercepts agent tool calls, compacts context deterministically (The Green AI Engine), and runs a flight-recorder heuristic to catch agent failures before they commit.
 
 ### Target Hackathon Tracks:
 *   **Warp (Best Dev Tool):** Improves the core developer experience by making coding agents cheaper, faster, and actually verifiable.
 *   **Deloitte (Green AI):** The Context Compaction Engine prevents the Gemini API from needlessly processing millions of redundant tokens, directly reducing GPU compute cycles and carbon emissions.
-*   **Base44 (Venture Builder):** Packaged as a B2B Enterprise SaaS dashboard that visualizes cost and compute savings for development teams.
-*   **Backboard.io:** Uses Backboard as the core orchestration infrastructure to route tool calls.
-*   **MLH (Gemini API):** Relies on Gemini 1.5 as the underlying intelligence powering the AI coding agent.
+*   **Backboard.io:** Uses Backboard for retrieval/analytics on the ledger (RAG over tool-call history, semantic failure-similarity, and multi-model cost benchmarking) rather than for the primary agent loop.
+*   **MLH (Gemini API):** Relies on Gemini as the underlying intelligence powering the AI coding agent.
 
 ---
 
@@ -20,7 +19,7 @@ No planning schema or special prompt syntax is required by the end-user develope
 *   **The Orchestrator (Backboard):** Handles the agent loop and tool-call routing.
 *   **The Brain (Gemini API):** Interprets the user's intent and generates code modifications.
 *   **The Proxy (Rust MCP Server):** Sits between Backboard and the file system. It intercepts reads/writes, calculates diffs, and evaluates execution signals.
-*   **The UI (Base44):** A web dashboard that reads the proxy's ledger to display token savings, carbon offset, and failure warnings.
+*   **The UI (Custom Web Dashboard):** A self-built web dashboard (landing page + observability views) that reads the proxy's ledger to display token savings, carbon offset, and failure warnings.
 
 ---
 
@@ -57,8 +56,8 @@ No planning schema or special prompt syntax is required by the end-user develope
 *   No authoritative declarations that the agent failed; frame as "evidence of failure".
 *   No generic hallucination detection (only verifiable claims).
 
-### Feature 4: Base44 Enterprise Observability Dashboard
-**Requirement:** A SaaS portal that visualizes runtime behavior, ROI, and Green AI metrics for enterprise teams.
+### Feature 4: Observability Dashboard (Custom Web UI)
+**Requirement:** A self-built web dashboard that visualizes runtime behavior, ROI, and Green AI metrics for engineering teams.
 **Primary Display:**
 *   Chronological tool and repository-state timeline.
 *   Original response vs. Response delivered to the agent (diff view).
@@ -73,7 +72,7 @@ No planning schema or special prompt syntax is required by the end-user develope
 
 ### Scenario A: The Green AI Optimization
 *   **Action:** The Gemini agent reads a massive, unchanged 20,000 token file multiple times while exploring the repo.
-*   **Demonstrates:** The proxy intercepts the duplicate reads, returning only the cache hash. The Base44 dashboard dynamically updates to show thousands of tokens saved and the corresponding carbon/cost reduction.
+*   **Demonstrates:** The proxy intercepts the duplicate reads, returning only the cache hash. The dashboard dynamically updates to show thousands of tokens saved and the corresponding carbon/cost reduction.
 
 ### Scenario B: The Retry Loop
 *   **Action:** The agent runs a test file, it fails. The agent gets stuck and runs the exact same test command 3 times without modifying any source files.
