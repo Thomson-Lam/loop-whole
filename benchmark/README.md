@@ -7,6 +7,14 @@ prediction format. Codex is the default backend.
 
 ## Prerequisites
 
+Make sure to update submodule first:
+```bash
+git submodule update --recursive
+
+# or
+# If it is your first time cloning the repo
+git submodule update --init --recursive
+```
 You need:
 
 - Python 3.10 or newer
