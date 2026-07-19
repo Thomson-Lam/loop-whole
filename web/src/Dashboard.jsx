@@ -56,7 +56,7 @@ export default function Dashboard() {
       <header className="dash-top">
         <div className="dash-left">
           <a className="brand" href="#/" title="Back to home">
-            <span className="mark">✳</span> Loopey
+            <span className="mark">✳</span> Loop-Whole
           </a>
           <div className="tabs">
             <button className="tab active">Token</button>
@@ -95,7 +95,7 @@ export default function Dashboard() {
 
         <section className="pane">
           <div className="pane-head">
-            <span className="mono">Intercepted (Loopey runtime)</span>
+            <span className="mono">Intercepted (Loop-Whole runtime)</span>
             <span className="tok">
               {fmt(intTok)} tok
               {savedTok > 0 && (
@@ -143,7 +143,7 @@ export default function Dashboard() {
             </p>
 
             <div className="ctx-row">
-              <div className="ctx-label mono">Without Loopey</div>
+              <div className="ctx-label mono">Without Loop-Whole</div>
               <div className="ctx-track">
                 <div
                   className="ctx-fill without"
@@ -156,7 +156,7 @@ export default function Dashboard() {
             </div>
 
             <div className="ctx-row">
-              <div className="ctx-label mono">With Loopey</div>
+              <div className="ctx-label mono">With Loop-Whole</div>
               <div className="ctx-track">
                 <div
                   className="ctx-fill with"
@@ -179,3 +179,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

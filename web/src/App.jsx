@@ -21,3 +21,4 @@ export default function App() {
 
   return route === "app" ? <Dashboard /> : <Landing />;
 }
+

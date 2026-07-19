@@ -1,6 +1,6 @@
 {
   "session": {
-    "id": "loopey-demo",
+    "id": "loop-whole-demo",
     "startedAtMs": 1774267200000,
     "endedAtMs": 1774267212000,
     "workspaceRoot": "/home/dev/warp-mcp-gateway",
@@ -118,7 +118,7 @@
         "tokens": 561
       },
       "intercepted": {
-        "text": "[loopey] file unchanged since seq 1 (baseline sha256:62ac7c399d39); 0 bytes re-sent to the model",
+        "text": "[loop-whole] file unchanged since seq 1 (baseline sha256:62ac7c399d39); 0 bytes re-sent to the model",
         "bytes": 96,
         "tokens": 24
       }
@@ -144,7 +144,7 @@
         "tokens": 715
       },
       "intercepted": {
-        "text": "[loopey] file unchanged since seq 2 (baseline sha256:d1b2eceefac8); 0 bytes re-sent to the model",
+        "text": "[loop-whole] file unchanged since seq 2 (baseline sha256:d1b2eceefac8); 0 bytes re-sent to the model",
         "bytes": 96,
         "tokens": 24
       }
@@ -197,7 +197,7 @@
         "tokens": 207
       },
       "intercepted": {
-        "text": "@@ schema.rs (baseline sha256:4132a04a3518 -> current sha256:a914d8eaa675) @@\n pub struct NewToolCall {\n     pub delivery_mode: String,\n+    pub decision_reason: Option<String>,\n     pub original_text: String,\n[loopey] delivered 1 changed hunk; 41 unchanged lines suppressed",
+        "text": "@@ schema.rs (baseline sha256:4132a04a3518 -> current sha256:a914d8eaa675) @@\n pub struct NewToolCall {\n     pub delivery_mode: String,\n+    pub decision_reason: Option<String>,\n     pub original_text: String,\n[loop-whole] delivered 1 changed hunk; 41 unchanged lines suppressed",
         "bytes": 274,
         "tokens": 69
       }
@@ -251,7 +251,7 @@
         "tokens": 721
       },
       "intercepted": {
-        "text": "@@ store.rs (baseline sha256:d1b2eceefac8 -> current sha256:7575d7d36e2e) @@\n         let id = store.next_id;\n-        store.next_id += 1;\n+        store.next_id += 1; // ids are session-local\n         store.tool_calls.push(StoredToolCall { id, call });\n[loopey] delivered 1 changed hunk; 71 unchanged lines suppressed",
+        "text": "@@ store.rs (baseline sha256:d1b2eceefac8 -> current sha256:7575d7d36e2e) @@\n         let id = store.next_id;\n-        store.next_id += 1;\n+        store.next_id += 1; // ids are session-local\n         store.tool_calls.push(StoredToolCall { id, call });\n[loop-whole] delivered 1 changed hunk; 71 unchanged lines suppressed",
         "bytes": 318,
         "tokens": 80
       }
@@ -309,10 +309,11 @@
         "tokens": 115
       },
       "intercepted": {
-        "text": "[loopey] command output unchanged since seq 10 (cargo test); 0 bytes re-sent to the model",
+        "text": "[loop-whole] command output unchanged since seq 10 (cargo test); 0 bytes re-sent to the model",
         "bytes": 89,
         "tokens": 23
       }
     }
   ]
 }
+
