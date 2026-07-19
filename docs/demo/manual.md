@@ -4,7 +4,7 @@ This [example depository](https://github.com/Thomson-Lam/loop-whole-demo-sandbox
 
 ## What the demo shows
 
-One continuous OpenCode session demonstrates:
+One logical OpenCode/gateway session, optionally split across two processes with durable resume, demonstrates:
 
 - a full file read followed by an unchanged marker;
 - a changed file delivered as a compact progressive diff;
@@ -71,7 +71,8 @@ From the sandbox repository:
 ```bash
 cd /Users/tlam/loop-whole-sandbox
 scripts/reset-demo.sh
-scripts/configure.sh
+rm -f .loopwhole/sessions/pitch-demo.json logs/pitch-demo.log
+scripts/configure.sh --session-id pitch-demo
 ```
 
 `reset-demo.sh` restores tracked files to the current sandbox commit and removes untracked, non-ignored demo files. It intentionally preserves:
@@ -86,8 +87,10 @@ The generated `opencode.json` contains absolute paths for this checkout and is g
 To configure a gateway at another location:
 
 ```bash
-scripts/configure.sh /absolute/path/to/warp-mcp-gateway
+scripts/configure.sh /absolute/path/to/warp-mcp-gateway --session-id pitch-demo
 ```
+
+Use a stable gateway session ID when preparing a recording. Calling `scripts/configure.sh` without a session option retains the old behavior of generating a random ID.
 
 ## Start the demo
 
@@ -130,11 +133,9 @@ curl -fsS http://127.0.0.1:8787/health
 curl -fsS http://127.0.0.1:8787/api/v1/sessions/current | python3 -m json.tool
 ```
 
-## Run the workflow
+## Run or pre-run the workflow
 
-Keep the same OpenCode process alive for the complete workflow. Read baselines and command baselines exist only within that gateway session.
-
-Follow the 18 prompts in [`DEMO.md`](DEMO.md), one at a time and in order. The sequence is:
+Follow the 18 prompts in [`DEMO.md`](DEMO.md), one at a time and in order. You can keep one OpenCode process alive, or use the durable checkpoint workflow below. In either case, preserve exact request arguments and do not reset the sandbox between workflow segments. The sequence is:
 
 1. list repository files twice with the exact same `rg --files` call;
 2. read `docs/architecture.md` twice with the same offset and limit;
@@ -182,7 +183,7 @@ Because the generated gateway command uses this sandbox as `--root`, evidence is
 
 The session JSON is written when the gateway shuts down normally, usually when OpenCode exits or disconnects from the MCP child. While the session is running, use the live API instead. A force kill or crash may prevent the final JSON dump, although flushed log lines may still exist.
 
-The session ID is generated automatically because `opencode.json` does not pass `--session-id`.
+The gateway session ID comes from `--session-id`/`--resume-session` when configured, or is generated automatically when neither option is present. It is separate from OpenCode's `ses_...` conversation ID.
 
 If the gateway is launched with another `--root`, both logs and `.loopwhole` move under that root. The frontend's location does not determine persistence.
 
@@ -199,9 +200,49 @@ Inspect totals only when `jq` is available:
 jq '.totals' .loopwhole/sessions/<session-id>.json
 ```
 
+## Pre-run checkpoint for a pitch or video
+
+The recommended split is after Prompt 12. That leaves six short live calls while preserving two compelling cross-process comparisons: the source reread becomes a diff against its preloaded baseline, and tests change from the preloaded failure to passing.
+
+1. Prepare the fresh named session:
+
+   ```bash
+   scripts/reset-demo.sh
+   rm -f .loopwhole/sessions/pitch-demo.json logs/pitch-demo.log
+   scripts/configure.sh --session-id pitch-demo
+   opencode
+   ```
+
+2. Record the OpenCode conversation ID (the `ses_...` value shown by `opencode session list`) and run Prompts 1–12.
+3. Exit OpenCode normally. Do **not** run `reset-demo.sh`. Verify the new dump has exactly 12 calls:
+
+   ```bash
+   python3 - <<'PY'
+   import json
+   state = json.load(open(".loopwhole/sessions/pitch-demo.json"))
+   assert len(state["toolCalls"]) == 12
+   assert "baselines" in state
+   PY
+   ```
+4. Generate the resumed MCP command:
+
+   ```bash
+   scripts/configure.sh --resume-session pitch-demo
+   ```
+
+5. During the recording, start the frontend and resume OpenCode's separate conversation:
+
+   ```bash
+   opencode -s <ses_...>
+   ```
+
+The new gateway child loads the first 12 calls before serving the API. The unchanged frontend immediately shows those calls and appends Prompts 13–18 live. A resume error is fatal rather than silently starting an empty session.
+
+The dump contains the gateway ledger and comparison baselines; OpenCode owns the model conversation. Both must be resumed, and the sandbox must remain at the Prompt 12 filesystem state. Only a normal gateway shutdown creates the checkpoint.
+
 ## End and reset
 
-Exit OpenCode normally first so the gateway can persist the session JSON. Stop Vite separately when finished.
+Exit OpenCode normally first so the gateway atomically updates the cumulative session JSON. Stop Vite separately when finished.
 
 To restore source files for another run while retaining evidence:
 
@@ -216,7 +257,7 @@ To remove prior evidence manually:
 rm -rf logs .loopwhole
 ```
 
-Then start a new OpenCode process. Reusing one process would reuse its in-memory baselines.
+Before another fresh run, remove or choose a new gateway session ID and regenerate `opencode.json` with `scripts/configure.sh --session-id <new-id>`. The reset preserves the prior `--resume-session` config, so do not launch OpenCode before regenerating it. Do not reset between the pre-run and resumed halves.
 
 ## Troubleshooting
 
@@ -245,7 +286,7 @@ lsof -nP -iTCP:8787 -sTCP:LISTEN
 
 ### A repeated call does not become unchanged
 
-Confirm the calls occurred in the same OpenCode session and used exactly identical arguments and `cwd` values.
+Confirm the calls used exactly identical arguments and `cwd` values. Across a process restart, also confirm the gateway was launched with `--resume-session` and the expected dump contains a `baselines` object.
 
 ### Session JSON is missing
 

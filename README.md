@@ -1,6 +1,6 @@
 # Warp MCP Gateway
 
-A Rust MCP server that exposes context-aware `read`, create-only `write`, exact `edit`, and allowlisted command tools, keeps tool-call evidence and runtime baselines in memory, and writes a session JSON dump on shutdown for observability.
+A Rust MCP server that exposes context-aware `read`, create-only `write`, exact `edit`, and allowlisted command tools, keeps tool-call evidence and runtime baselines, and writes resumable session JSON on shutdown.
 
 Repeated reads and commands return unchanged markers or progressive diffs. Command output is bounded and known `cargo test` output is projected into a compact result.
 
@@ -56,7 +56,8 @@ The server reserves stdout for MCP protocol messages. Diagnostics are written to
 ```text
 --root <PATH>                    Workspace boundary; defaults to current directory
 --api-addr <HOST:PORT>           Polling API address; defaults to 127.0.0.1:8787
---session-id <ID>                Optional external session identifier
+--session-id <ID>                Start a fresh session with this identifier
+--resume-session <ID>            Resume .loopwhole/sessions/<ID>.json
 --context-window-tokens <COUNT>  Optional model context-window size for UI percentages
 ```
 
@@ -70,6 +71,8 @@ server/target/release/warp-mcp-gateway \
 ```
 
 This is the command the MCP client launches; it is shown for clarity rather than as a separate startup step. While the client-managed MCP process is running, the same process exposes the HTTP API at the configured address. When the MCP process ends, it saves a session dump to `.loopwhole/sessions/<session-id>.json`.
+
+Session IDs may contain ASCII letters, numbers, `.`, `_`, and `-`. To continue that logical gateway session in a later MCP-client process, replace `--session-id demo-session` with `--resume-session demo-session`. The gateway restores prior calls, token totals, read baselines, command baselines, and ID/sequence counters before serving MCP or HTTP. The configured workspace and context-window value must match the dump. Resume the coding agent's own conversation separately; those are two independent session IDs.
 
 Expected startup order:
 
@@ -148,7 +151,7 @@ Expected startup order:
 
 ## Dashboard API
 
-The API is read-only and consumed by the Vite/React frontend. It reads from the process's in-memory session store, so the frontend can query it concurrently without a database. When the MCP process exits, the in-memory state is dumped to `.loopwhole/sessions/<session-id>.json` and then discarded. During development, Vite proxies `/api` and `/health` to `127.0.0.1:8787`.
+The API is read-only and consumed by the Vite/React frontend. It reads from the process's in-memory session store, so the frontend can query it concurrently without a database. A resumed process seeds that store from `.loopwhole/sessions/<session-id>.json`, allowing the existing UI to show prior calls and append live calls without frontend merging. During development, Vite proxies `/api` and `/health` to `127.0.0.1:8787`.
 
 ### Health
 
@@ -207,7 +210,8 @@ Implemented:
 - context-aware `read`, create-only `write`, exact `edit`, and allowlisted `bash` tools;
 - workspace path enforcement for file tools and command working directories;
 - bounded read and command output;
-- in-memory read-view and repeated-command baselines;
+- read-view and repeated-command baselines;
+- durable session resume with prior calls, counters, and comparison baselines;
 - unchanged and progressive-diff delivery;
 - generic command normalization and a conservative `cargo test` projection;
 - session-scoped original/intercepted payload storage;
@@ -236,6 +240,7 @@ Shape:
 
 ```json
 {
+  "formatVersion": 1,
   "session": {
     "id": "demo-session",
     "startedAtMs": 1774267200000,
@@ -272,7 +277,11 @@ Shape:
       "original": { "text": "...", "bytes": 1234, "tokens": 309 },
       "intercepted": { "text": "...", "bytes": 1234, "tokens": 309 }
     }
-  ]
+  ],
+  "baselines": {
+    "reads": [],
+    "commands": []
+  }
 }
 ```
 

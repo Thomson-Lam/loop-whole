@@ -32,7 +32,7 @@ pub struct SessionSnapshot {
     pub tool_calls: Vec<ToolCallSummary>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSummary {
     pub id: String,
@@ -42,7 +42,7 @@ pub struct SessionSummary {
     pub token_counter: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenTotals {
     pub tool_input_tokens: u64,
@@ -97,7 +97,7 @@ pub struct DeliveryDecision {
     pub current_hash: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolPayload {
     pub text: String,

@@ -602,6 +602,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn resumes_read_comparison_state() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("example.rs");
+        tokio::fs::write(&path, "fn main() {}\n").await.unwrap();
+        let root_path = tokio::fs::canonicalize(root.path()).await.unwrap();
+        let store = SessionStore::new(crate::schema::SessionSummary {
+            id: "resume".to_string(),
+            started_at_ms: 1,
+            workspace_root: root_path.to_string_lossy().into_owned(),
+            context_window_tokens: None,
+            token_counter: "chars_div_4_v1".to_string(),
+        });
+        let gateway = Gateway::new(Arc::new(GatewayState {
+            store: store.clone(),
+            files: FileTools::new(root_path.clone()),
+            commands: CommandTools::new(root_path.clone()),
+            sequence: AtomicU64::new(1),
+        }));
+        gateway
+            .read(Parameters(ReadRequest {
+                path: "example.rs".to_string(),
+                offset: None,
+                limit: None,
+            }))
+            .await;
+
+        let dump = root_path.join("session.json");
+        store.persist_to_path(&dump, 2).unwrap();
+        let (loaded, next_sequence) =
+            SessionStore::load_from_path(&dump, &root_path, "resume", None).unwrap();
+        let resumed = Gateway::new(Arc::new(GatewayState {
+            store: loaded.clone(),
+            files: FileTools::new(root_path.clone()),
+            commands: CommandTools::new(root_path),
+            sequence: AtomicU64::new(next_sequence),
+        }));
+
+        let result = resumed
+            .read(Parameters(ReadRequest {
+                path: "example.rs".to_string(),
+                offset: None,
+                limit: None,
+            }))
+            .await;
+        let result = serde_json::to_value(result).unwrap();
+        assert!(
+            result["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("No changes")
+        );
+        assert_eq!(
+            loaded
+                .snapshot()
+                .tool_calls
+                .iter()
+                .map(|call| (call.id, call.sequence, call.delivery_mode.as_str()))
+                .collect::<Vec<_>>(),
+            [(1, 1, "full"), (2, 2, "unchanged")]
+        );
+    }
+
+    #[tokio::test]
     async fn compacts_repeated_read_views() {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("example.rs");

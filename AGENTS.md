@@ -27,11 +27,11 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 
 ### Backend
 
-- `server/src/main.rs` — CLI parsing, workspace canonicalization, logging setup, MCP/HTTP lifecycle, and shutdown persistence.
+- `server/src/main.rs` — CLI parsing, workspace canonicalization, fresh/resumed session setup, logging, MCP/HTTP lifecycle, and shutdown persistence.
 - `server/src/mcp.rs` — MCP handlers, delivery-mode decisions, diffing, token estimation, and evidence recording.
 - `server/src/tools.rs` — bounded UTF-8 reads, create-only writes, exact edits, path enforcement, and process-local mutation locks.
 - `server/src/commands.rs` — command allowlist, workspace-scoped working directories, bounded process capture, normalization, and Cargo test projection.
-- `server/src/store.rs` — concurrent in-memory calls and baselines, API snapshots/details, totals, and persisted session shape.
+- `server/src/store.rs` — concurrent calls and baselines, API snapshots/details, totals, and resumable session serialization.
 - `server/src/api.rs` — health, current-session summary, and tool-call detail routes.
 - `server/src/schema.rs` — MCP request schemas and API response models.
 - `server/src/logging.rs` — diagnostics mirrored to stderr and `logs/<session-id>.log`.
@@ -52,7 +52,7 @@ Unit tests are colocated in `server/src/commands.rs`, `server/src/mcp.rs`, `serv
 - File paths and command working directories must resolve within `--root`; file operations also reject symlink escapes.
 - `bash` executes allowlisted programs directly without shell expansion. Output is bounded, but allowed programs and build scripts retain the process user's permissions.
 - Read baselines are keyed by canonical path, offset, and limit. Command baselines are keyed by program, exact arguments, and canonical working directory; commands execute again before comparison.
-- Session evidence and baselines are process-local and in memory. The HTTP API exposes the current process only; shutdown writes `.loopwhole/sessions/<session-id>.json` under the workspace root.
+- The HTTP API exposes the current process only. Shutdown writes calls and comparison baselines to `.loopwhole/sessions/<session-id>.json`; `--resume-session <session-id>` restores them when the workspace and session metadata match.
 - Token counts approximate `ceil(characters / 4)` and cover serialized tool arguments and tool results, not full model context.
 
 ## Validation

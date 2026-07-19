@@ -1,9 +1,7 @@
 """Builds a realistic, self-consistent Loopey demo session dump.
 
 Output conforms to .loopwhole.example/session.schema.json and mirrors the
-warp-mcp-gateway session-dump shape (server/src/store.rs::PersistedSession), including
-the *target* interception behavior (unchanged-read suppression + diff delivery)
-that the backend still needs to implement.
+warp-mcp-gateway session-dump shape (server/src/store.rs::PersistedSession).
 
 Token counting matches the backend: tokens = ceil(char_count / 4)  ("chars_div_4_v1").
 Byte counts use UTF-8 length. Totals are summed exactly like server/src/store.rs.
@@ -313,6 +311,7 @@ for c in calls:
     del c["_input_tokens"]
 
 session = {
+    "formatVersion": 1,
     "session": {
         "id": SESSION_ID,
         "startedAtMs": START_MS,
@@ -333,6 +332,7 @@ session = {
         "withRuntimeContextPercent": with_ctx_pct,
     },
     "toolCalls": calls,
+    "baselines": {"reads": [], "commands": []},
 }
 
 repo_root = Path(__file__).resolve().parent.parent

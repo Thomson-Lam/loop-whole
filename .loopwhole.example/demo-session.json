@@ -1,4 +1,5 @@
 {
+  "formatVersion": 1,
   "session": {
     "id": "loopey-demo",
     "startedAtMs": 1774267200000,
@@ -314,5 +315,9 @@
         "tokens": 23
       }
     }
-  ]
+  ],
+  "baselines": {
+    "reads": [],
+    "commands": []
+  }
 }
