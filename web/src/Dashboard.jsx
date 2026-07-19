@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import session from "./data/demo-session.json";
+import useLiveSession from "./useLiveSession";
 
 const MODE_LABEL = {
   full: "FULL",
@@ -15,12 +15,13 @@ function fmt(n) {
 }
 
 export default function Dashboard() {
-  const totals = session.totals;
-  const meta = session.session;
-
+  const { session, error } = useLiveSession();
   const calls = useMemo(
-    () => [...session.toolCalls].sort((a, b) => a.sequence - b.sequence),
-    []
+    () =>
+      [...(session?.toolCalls ?? [])].sort(
+        (a, b) => a.sequence - b.sequence
+      ),
+    [session]
   );
 
   const [index, setIndex] = useState(0);
@@ -29,7 +30,8 @@ export default function Dashboard() {
   const call = calls[index];
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
-  const next = () => setIndex((i) => Math.min(calls.length - 1, i + 1));
+  const next = () =>
+    setIndex((i) => Math.max(0, Math.min(calls.length - 1, i + 1)));
 
   useEffect(() => {
     const onKey = (e) => {
@@ -42,6 +44,23 @@ export default function Dashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [calls.length]);
 
+  useEffect(() => {
+    setIndex((i) => Math.max(0, Math.min(i, calls.length - 1)));
+  }, [calls.length]);
+
+  if (!session) {
+    return (
+      <div className="dash pane-body">
+        {error ? `API unavailable: ${error.message}` : "Loading session…"}
+      </div>
+    );
+  }
+  if (!call) {
+    return <div className="dash pane-body">Waiting for tool calls…</div>;
+  }
+
+  const totals = session.totals;
+  const meta = session.session;
   const origTok = call.original.tokens;
   const intTok = call.intercepted.tokens;
   const savedTok = origTok - intTok;

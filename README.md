@@ -148,7 +148,7 @@ Expected startup order:
 
 ## Dashboard API
 
-The API is read-only and intended for a Vite/TanStack Query frontend. It reads from the process's in-memory session store, so the frontend can query it concurrently without a database. When the MCP process exits, the in-memory state is dumped to `.loopwhole/sessions/<session-id>.json` and then discarded.
+The API is read-only and consumed by the Vite/React frontend. It reads from the process's in-memory session store, so the frontend can query it concurrently without a database. When the MCP process exits, the in-memory state is dumped to `.loopwhole/sessions/<session-id>.json` and then discarded. During development, Vite proxies `/api` and `/health` to `127.0.0.1:8787`.
 
 ### Health
 
@@ -185,7 +185,7 @@ Returns the selected call's:
 - byte and estimated-token counts;
 - delivery decision metadata.
 
-Fetch this endpoint when the selected timeline item changes rather than polling every large payload.
+The hackathon frontend hydrates every summary through this endpoint on each poll so both the dashboard and landing-page replay stay live. Cache details by ID if demo sessions become large.
 
 ## Token accounting
 
