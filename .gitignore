@@ -6,3 +6,4 @@ docs/handoff/
 /server/tests/opencode/workspace/
 /server/tests/opencode/fixture/target/
 /server/tests/opencode/fixture/Cargo.lock
+target/
