@@ -1,4 +1,5 @@
 mod api;
+mod backboard;
 mod commands;
 mod logging;
 mod mcp;
@@ -45,6 +46,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let _ = try_load_dotenv();
     let args = Args::parse();
     let root = tokio::fs::canonicalize(&args.root)
         .await
@@ -106,11 +108,12 @@ async fn main() -> Result<()> {
         }
     };
 
+    let ended_at_ms = now_ms();
     let dump_path = root
         .join(".loopwhole")
         .join("sessions")
         .join(format!("{}.json", safe_session_id(&session_id)));
-    if let Err(error) = store.persist_to_path(&dump_path, now_ms()) {
+    if let Err(error) = store.persist_to_path(&dump_path, ended_at_ms) {
         log_line(format!(
             "failed to save session dump to {}: {error:#}",
             dump_path.display()
@@ -120,6 +123,14 @@ async fn main() -> Result<()> {
             "saved session dump ({shutdown_reason}): {}",
             dump_path.display()
         ));
+    }
+
+    // Push session summary to Backboard for persistent cross-session memory.
+    if let Ok(api_key) = std::env::var("BACKBOARD_API_KEY") {
+        if !api_key.is_empty() {
+            let persisted = store.persisted_session_public(ended_at_ms);
+            backboard::push_session_summary(&api_key, &persisted).await;
+        }
     }
 
     api_task.abort();
@@ -160,3 +171,32 @@ fn safe_session_id(session_id: &str) -> String {
         safe
     }
 }
+
+/// Best-effort dotenv loader: walks from the current dir up to find `.env`,
+/// then loads it. Ignoring errors is intentional — the server works without it.
+fn try_load_dotenv() {
+    let mut dir = std::env::current_dir().ok();
+    while let Some(d) = dir {
+        let candidate = d.join(".env");
+        if candidate.is_file() {
+            if let Ok(content) = std::fs::read_to_string(&candidate) {
+                for line in content.lines() {
+                    let line = line.trim();
+                    if line.is_empty() || line.starts_with('#') {
+                        continue;
+                    }
+                    if let Some((key, value)) = line.split_once('=') {
+                        let key = key.trim();
+                        let value = value.trim();
+                        if !key.is_empty() && std::env::var(key).is_err() {
+                            std::env::set_var(key, value);
+                        }
+                    }
+                }
+            }
+            return;
+        }
+        dir = d.parent().map(|p| p.to_path_buf());
+    }
+}
+

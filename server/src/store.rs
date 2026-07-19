@@ -258,6 +258,10 @@ impl SessionStore {
         })
     }
 
+    pub fn persisted_session_public(&self, ended_at_ms: i64) -> PersistedSession {
+        self.persisted_session(ended_at_ms)
+    }
+
     fn persisted_session(&self, ended_at_ms: i64) -> PersistedSession {
         let store = self.inner.read().expect("session store lock poisoned");
         let input = store

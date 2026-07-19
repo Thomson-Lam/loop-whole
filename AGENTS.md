@@ -22,13 +22,16 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `server/src/api.rs` — Health, session polling, and tool-call detail endpoints.
 - `server/src/logging.rs` — Repo-local diagnostics and per-call benchmark lines mirrored to stderr and `logs/`.
 - `server/src/schema.rs` — MCP inputs and frontend API response types.
+- `server/src/backboard.rs` — Backboard.io session-summary push with persistent memory on shutdown.
 - `README.md` — Setup, MCP configuration, API usage, session dump schema, and implementation status.
 - `INDEX.md` — Root navigation map for backend, frontend, documentation, tests, and runtime boundaries.
 - `web/INDEX.md` — Frontend component map and live backend API integration boundary.
 - `web/src/api.js` — Current-session and tool-call detail API hydration.
 - `web/src/useLiveSession.js` — Shared React polling hook for live session consumers.
+- `web/src/backboardApi.js` — Backboard.io REST API wrapper for conversational memory.
+- `web/src/SessionChat.jsx` — Backboard-powered chat panel for querying session history.
 - `.loopwhole.example/session.schema.json` — Committed reference schema for persisted session dumps.
-- `.env.example` — Template for local secrets (`GEMINI_API_KEY`); copy to `.env` (gitignored).
+- `.env.example` — Template for local secrets (`GEMINI_API_KEY`, `BACKBOARD_API_KEY`); copy to `.env` (gitignored).
 - `server/tests/context.md` — Entry point for local MCP smoke testing.
 - `server/tests/opencode/` — Isolated OpenCode configuration, fixture, instruction prompts, and smoke runner.
 - `docs/tools/` — Per-tool delivery, token-reduction, and diagnosis documentation.
@@ -36,7 +39,7 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `docs/tests/manual.md` — Manual OpenCode reproduction, measurement, and troubleshooting guide.
 - `docs/planning/` — Feature, optimization, frontend, and silent-failure specifications.
 
-Tests currently live beside the implementation in `server/src/commands.rs`, `server/src/mcp.rs`, `server/src/store.rs`, and `server/src/tools.rs`.
+Tests currently live beside the implementation in `server/src/commands.rs`, `server/src/mcp.rs`, `server/src/store.rs`, `server/src/tools.rs`, and `server/src/backboard.rs`.
 
 ## Validation
 
