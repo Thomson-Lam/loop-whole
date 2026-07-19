@@ -22,7 +22,6 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `src/logging.rs` — Repo-local diagnostics and per-call benchmark lines mirrored to stderr and `logs/`.
 - `src/schema.rs` — MCP inputs and frontend API response types.
 - `README.md` — Setup, MCP configuration, API usage, session dump schema, and implementation status.
-- `issues.md` — Frontend implementation issue for landing-page tool modals and context-optimization animations.
 - `.loopwhole.example/session.schema.json` — Committed reference schema for persisted session dumps.
 - `tests/context.md` — Entry point for local MCP smoke testing.
 - `tests/opencode/` — Isolated OpenCode configuration, fixture, instruction prompts, and smoke runner.
