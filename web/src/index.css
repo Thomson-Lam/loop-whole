@@ -597,7 +597,7 @@ section.replay {
   color: var(--accent-dim);
 }
 
-.rl-loopey {
+.rl-loop-whole {
   color: var(--accent);
   font-weight: 600;
 }
@@ -1126,3 +1126,4 @@ kbd {
     border-top: 1px solid var(--line);
   }
 }
+
