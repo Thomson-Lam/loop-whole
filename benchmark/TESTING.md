@@ -1,6 +1,18 @@
 ## Generate prediction from coding harness
+
+Codex (default):
+
 ```bash
 venv/bin/python generate_predictions.py \
+    --dataset SWE-bench/SWE-bench_Verified \
+    --limit 2
+```
+
+OpenCode:
+
+```bash
+venv/bin/python generate_predictions.py \
+    --backend opencode \
     --dataset SWE-bench/SWE-bench_Verified \
     --limit 2
 ```

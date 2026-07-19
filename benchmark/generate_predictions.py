@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate SWE-bench patch predictions with the Codex CLI.
+"""Generate SWE-bench patch predictions with Codex or OpenCode.
 
-Each benchmark instance is checked out in an isolated clone, handed to Codex, and
-written to a JSONL file in the format expected by the SWE-bench evaluation
-harness.
+Each benchmark instance is checked out in an isolated clone, handed to the
+selected coding-agent CLI, and written to a JSONL file in the format expected by
+the SWE-bench evaluation harness.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from typing import Any, Iterable
 DEFAULT_DATASET = "SWE-bench/SWE-bench_Verified"
 DEFAULT_OUTPUT = Path("predictions.jsonl")
 DEFAULT_WORK_DIR = Path(".swebench_codex")
+DEFAULT_OPENCODE_CONFIG = Path(__file__).resolve().with_name("opencode.json")
 
 _repo_locks: dict[str, threading.Lock] = {}
 _repo_locks_guard = threading.Lock()
@@ -38,7 +39,10 @@ class PredictionError(RuntimeError):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Load a SWE-bench dataset from Hugging Face and ask Codex to solve it."
+        description=(
+            "Load a SWE-bench dataset from Hugging Face and ask Codex or OpenCode "
+            "to solve it."
+        )
     )
     parser.add_argument("--dataset", default=DEFAULT_DATASET, help="Hugging Face dataset name")
     parser.add_argument("--split", default="test", help="Dataset split (default: test)")
@@ -49,10 +53,19 @@ def parse_args() -> argparse.Namespace:
         help="Failure JSONL path (default: <output>.errors.jsonl)",
     )
     parser.add_argument("--work-dir", type=Path, default=DEFAULT_WORK_DIR)
-    parser.add_argument("--model", help="Model passed to `codex exec`; defaults to Codex config")
+    parser.add_argument(
+        "--backend",
+        choices=("codex", "opencode"),
+        default="codex",
+        help="Coding-agent CLI to run (default: codex)",
+    )
+    parser.add_argument(
+        "--model",
+        help="Model passed to the selected backend; defaults to its current config",
+    )
     parser.add_argument(
         "--model-name",
-        help="Name recorded in predictions (default: --model or codex-default)",
+        help="Name recorded in predictions (default: --model or <backend>-default)",
     )
     parser.add_argument("--codex-bin", default="codex", help="Codex CLI executable")
     parser.add_argument(
@@ -61,8 +74,21 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Extra argument passed to `codex exec` (repeatable)",
     )
-    parser.add_argument("--workers", type=int, default=1, help="Concurrent Codex runs")
-    parser.add_argument("--timeout", type=int, default=3600, help="Seconds allowed per Codex run")
+    parser.add_argument("--opencode-bin", default="opencode", help="OpenCode CLI executable")
+    parser.add_argument(
+        "--opencode-config",
+        type=Path,
+        default=DEFAULT_OPENCODE_CONFIG,
+        help="OpenCode config file (default: opencode.json beside this script)",
+    )
+    parser.add_argument(
+        "--opencode-arg",
+        action="append",
+        default=[],
+        help="Extra argument passed to `opencode run` (repeatable)",
+    )
+    parser.add_argument("--workers", type=int, default=1, help="Concurrent agent runs")
+    parser.add_argument("--timeout", type=int, default=3600, help="Seconds allowed per agent run")
     parser.add_argument("--limit", type=int, help="Process at most this many pending instances")
     parser.add_argument("--start", type=int, default=0, help="Skip this many selected instances")
     parser.add_argument(
@@ -74,7 +100,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include-hints",
         action="store_true",
-        help="Include hints_text from the dataset in the Codex prompt",
+        help="Include hints_text from the dataset in the agent prompt",
     )
     parser.add_argument(
         "--keep-worktrees",
@@ -207,6 +233,27 @@ def collect_patch(checkout: Path) -> str:
     return patch.strip() + ("\n" if patch.strip() else "")
 
 
+def build_agent_command(
+    args: argparse.Namespace, checkout: Path, prompt: str, last_message: Path
+) -> tuple[list[str], str | None]:
+    """Build a backend command and return any text that should be sent on stdin."""
+    if args.backend == "opencode":
+        command = [args.opencode_bin, "run", "--dir", str(checkout)]
+        if args.model:
+            command.extend(["--model", args.model])
+        command.extend(args.opencode_arg)
+        command.append(prompt)
+        return command, None
+
+    command = [args.codex_bin, "-a", "never", "exec", "--ephemeral", "--color", "never"]
+    command.extend(["--sandbox", "workspace-write", "--cd", str(checkout)])
+    if args.model:
+        command.extend(["--model", args.model])
+    command.extend(args.codex_arg)
+    command.extend(["--output-last-message", str(last_message), "-"])
+    return command, prompt
+
+
 def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str, str]:
     instance_id = str(instance["instance_id"])
     with _console_lock:
@@ -220,37 +267,40 @@ def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str
     log_path = log_dir / f"{safe_name(instance_id)}.log"
     last_message = run_root / "last_message.txt"
 
-    command = [args.codex_bin, "-a", "never", "exec", "--ephemeral", "--color", "never"]
-    command.extend(["--sandbox", "workspace-write", "--cd", str(checkout)])
-    if args.model:
-        command.extend(["--model", args.model])
-    command.extend(args.codex_arg)
-    command.extend(["--output-last-message", str(last_message), "-"])
     prompt = build_prompt(instance, args.include_hints)
+    command, command_input = build_agent_command(args, checkout, prompt, last_message)
+    backend_label = args.backend.capitalize()
+    command_env = None
+    if args.backend == "opencode":
+        command_env = os.environ.copy()
+        command_env["OPENCODE_CONFIG"] = str(args.opencode_config)
 
+    run_details = [
+        f"[{args.backend}] Starting {instance_id}",
+        f"[{args.backend}] Checkout: {checkout}",
+        f"[{args.backend}] Model: {args.model or f'{backend_label} config default'}",
+    ]
+    if args.backend == "opencode":
+        run_details.append(f"[opencode] Config: {args.opencode_config}")
+    run_details.extend(
+        [
+            f"[{args.backend}] Timeout: {args.timeout} seconds",
+            f"[{args.backend}] Command: {shlex.join(command)}",
+            f"[{args.backend}] Prompt:",
+            "---------------- PROMPT ----------------",
+            prompt.rstrip(),
+            "-------------- END PROMPT --------------",
+        ]
+    )
     with _console_lock:
-        print(
-            "\n".join(
-                [
-                    f"[codex] Starting {instance_id}",
-                    f"[codex] Checkout: {checkout}",
-                    f"[codex] Model: {args.model or 'Codex config default'}",
-                    f"[codex] Timeout: {args.timeout} seconds",
-                    f"[codex] Command: {shlex.join(command)}",
-                    "[codex] Prompt:",
-                    "---------------- PROMPT ----------------",
-                    prompt.rstrip(),
-                    "-------------- END PROMPT --------------",
-                ]
-            ),
-            flush=True,
-        )
+        print("\n".join(run_details), flush=True)
 
     try:
         try:
             result = subprocess.run(
                 command,
-                input=prompt,
+                input=command_input,
+                env=command_env,
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -258,16 +308,22 @@ def generate_one(instance: dict[str, Any], args: argparse.Namespace) -> dict[str
                 check=False,
             )
         except subprocess.TimeoutExpired as exc:
-            raise PredictionError(f"Codex timed out after {args.timeout}s") from exc
+            raise PredictionError(f"{backend_label} timed out after {args.timeout}s") from exc
         if result.returncode != 0:
-            raise PredictionError(f"Codex exited with code {result.returncode}")
+            tail = result.stdout[-4000:].strip()
+            raise PredictionError(
+                f"{backend_label} exited with code {result.returncode}"
+                + (f"\n{tail}" if tail else "")
+            )
         patch = collect_patch(checkout)
         if not patch:
-            raise PredictionError("Codex produced no patch")
+            raise PredictionError(f"{backend_label} produced no patch")
         log_path.write_text(patch, encoding="utf-8")
         return {
             "instance_id": instance_id,
-            "model_name_or_path": args.model_name or args.model or "codex-default",
+            "model_name_or_path": (
+                args.model_name or args.model or f"{args.backend}-default"
+            ),
             "model_patch": patch,
         }
     finally:
@@ -319,9 +375,21 @@ def select_instances(dataset: Iterable[dict[str, Any]], args: argparse.Namespace
 
 def main() -> int:
     args = parse_args()
-    if shutil.which(args.codex_bin) is None:
-        print(f"error: Codex executable not found: {args.codex_bin}", file=sys.stderr)
+    agent_bin = args.codex_bin if args.backend == "codex" else args.opencode_bin
+    if shutil.which(agent_bin) is None:
+        print(
+            f"error: {args.backend.capitalize()} executable not found: {agent_bin}",
+            file=sys.stderr,
+        )
         return 2
+    if args.backend == "opencode":
+        args.opencode_config = args.opencode_config.resolve()
+        if not args.opencode_config.is_file():
+            print(
+                f"error: OpenCode config file not found: {args.opencode_config}",
+                file=sys.stderr,
+            )
+            return 2
     if shutil.which("git") is None:
         print("error: git executable not found", file=sys.stderr)
         return 2

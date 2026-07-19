@@ -1,8 +1,9 @@
-# Codex SWE-bench Prediction Runner
+# Codex and OpenCode SWE-bench Prediction Runner
 
 `generate_predictions.py` loads SWE-bench instances from Hugging Face, checks out
-each repository at its specified base commit, asks the Codex CLI to implement the
-fix, and saves the resulting Git diff in SWE-bench prediction format.
+each repository at its specified base commit, asks either the Codex CLI or the
+OpenCode CLI to implement the fix, and saves the resulting Git diff in SWE-bench
+prediction format. Codex is the default backend.
 
 ## Prerequisites
 
@@ -11,8 +12,9 @@ You need:
 - Python 3.10 or newer
 - Git
 - Network access to Hugging Face and GitHub
-- The `codex` CLI installed and available on `PATH`
-- A working Codex login
+- The CLI for your selected backend installed and available on `PATH`: `codex`
+  or `opencode`
+- A working login/provider configuration for that CLI
 
 Check your Codex login with:
 
@@ -24,6 +26,13 @@ If necessary, authenticate with:
 
 ```bash
 codex login
+```
+
+For OpenCode, inspect configured providers and authenticate with:
+
+```bash
+opencode providers list
+opencode providers login
 ```
 
 ## Python setup
@@ -47,10 +56,42 @@ venv/bin/python generate_predictions.py \
 ```
 
 The terminal prints the instance ID, repository and base commit, checkout path,
-model, timeout, complete Codex command, and exact prompt sent to Codex.
+model, timeout, complete agent command, and exact prompt sent to the agent.
 
-Generating predictions may consume paid Codex usage. Start with `--limit 1`
+Generating predictions may consume paid model usage. Start with `--limit 1`
 before launching a larger batch.
+
+## Run with OpenCode
+
+Select OpenCode with `--backend opencode`:
+
+```bash
+venv/bin/python generate_predictions.py \
+    --backend opencode \
+    --dataset SWE-bench/SWE-bench_Verified \
+    --limit 1 \ 
+    --opencode-config /Users/jonathanzhu/Projects/hackthe6ix/loop-whole/benchmark/opencode.json
+```
+
+The runner invokes `opencode run --dir <checkout>` and explicitly sets
+`OPENCODE_CONFIG` to the `opencode.json` beside the script. This ensures the
+LoopWhole MCP configuration is loaded even though each isolated checkout is a
+separate Git repository. Select an OpenCode model in `provider/model` form when
+needed:
+
+```bash
+venv/bin/python generate_predictions.py \
+    --backend opencode \
+    --model anthropic/claude-sonnet-4-5 \
+    --limit 1
+```
+
+Use `--opencode-bin` to select another executable and repeat
+`--opencode-arg=<argument>` for additional `opencode run` arguments. For
+example, `--opencode-arg=--agent --opencode-arg=build` selects an OpenCode
+agent. Arguments beginning with `-` must use the `--opencode-arg=<argument>`
+form. Use `--opencode-config path/to/opencode.json` to select another OpenCode
+configuration file.
 
 ## Common examples
 
@@ -85,7 +126,7 @@ venv/bin/python generate_predictions.py \
     --instance-id django__django-11099
 ```
 
-Use four concurrent Codex runs and allow two hours per instance:
+Use four concurrent agent runs and allow two hours per instance:
 
 ```bash
 venv/bin/python generate_predictions.py \
@@ -93,7 +134,7 @@ venv/bin/python generate_predictions.py \
     --timeout 7200
 ```
 
-Concurrency starts multiple Codex sessions and repository checkouts at once, so
+Concurrency starts multiple agent sessions and repository checkouts at once, so
 increase `--workers` carefully.
 
 Select a model explicitly:
