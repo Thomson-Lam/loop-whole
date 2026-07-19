@@ -1,163 +1,201 @@
-# Loop-Whole sandbox manual
+# Loop-Whole demo manual
 
-This [example depository](https://github.com/Thomson-Lam/loop-whole-demo-sandbox) used in the demo video is a deterministic development workload for demonstrating Loop-Whole's context-aware MCP tools. The gateway runs from the sibling `loop-whole` repository but treats this sandbox as its workspace root.
-
-## What the demo shows
-
-One logical OpenCode/gateway session, optionally split across two processes with durable resume, demonstrates:
-
-- a full file read followed by an unchanged marker;
-- a changed file delivered as a compact progressive diff;
-- repeated deterministic commands delivered as unchanged;
-- Cargo test output changing from passing to failing to passing;
-- create-only write safety when the same file is written twice;
-- live token totals and original/intercepted payloads in the frontend.
-
-The duplicate write is a safety demonstration, not a token-saving case. `write` confirmations and errors are intentionally passed through unchanged.
-
-## Repository locations
-
-The expected local layout is:
+This is the copy-and-paste setup guide for the Loop-Whole demo. It assumes this local layout:
 
 ```text
 /Users/tlam/
-├── loop-whole/           # Gateway backend and observability frontend
-└── loop-whole-sandbox/   # This simulated development repository
+├── loop-whole/           # Gateway backend and frontend
+└── loop-whole-sandbox/   # OpenCode demo workspace
 ```
 
-The generated OpenCode configuration launches:
+The frontend has two relevant routes:
 
 ```text
-/Users/tlam/loop-whole/server/target/debug/warp-mcp-gateway
+http://localhost:5173/#/app        # live gateway session
+http://localhost:5173/#/benchmarks # bundled benchmark results
 ```
 
-with:
+`#/app` requires the gateway API running under OpenCode. `#/benchmarks` reads bundled JSON and does not require the gateway API.
 
-```text
---root /Users/tlam/loop-whole-sandbox
---api-addr 127.0.0.1:8787
---context-window-tokens 200000
+## 1. Set the demo paths and session ID
+
+Run this in every terminal used by the demo:
+
+```bash
+export LOOP_WHOLE="/Users/tlam/loop-whole"
+export SANDBOX="/Users/tlam/loop-whole-sandbox"
+export SESSION="pitch-demo"
 ```
 
-Pass a different gateway executable to `scripts/configure.sh` if the repositories are not siblings.
+Change `SESSION` when you want a separate gateway session.
 
-## Prerequisites
+> **Required setup:** Both repositories must exist as sibling directories at the paths above. This can be set up with `git clone https://github.com/Thomson-Lam/loop-whole.git "$LOOP_WHOLE"` and `git clone https://github.com/Thomson-Lam/loop-whole-demo-sandbox.git "$SANDBOX"`.
 
-Confirm these commands are available:
+Check the directories:
+
+```bash
+test -d "$LOOP_WHOLE/server"
+test -d "$LOOP_WHOLE/web"
+test -d "$SANDBOX/scripts"
+```
+
+## 2. Check required programs
 
 ```bash
 command -v cargo
 command -v npm
+command -v node
 command -v opencode
-command -v python3
+command -v curl
+command -v lsof
 ```
 
-OpenCode also needs a configured model/provider.
+> **Required setup:** OpenCode must have a working model/provider configuration before the demo. Configure it in OpenCode's normal configuration location and confirm it by running `opencode` once outside the demo workflow.
 
-## One-time gateway build
+## 3. Prepare benchmark data and the frontend
 
-Build the MCP gateway whenever it does not exist or its Rust source has changed:
+The repository includes benchmark data at:
+
+```text
+/Users/tlam/loop-whole/web/src/data/benchmark-results.json
+```
+
+Check it and install the frontend dependencies:
 
 ```bash
-cargo build --manifest-path /Users/tlam/loop-whole/server/Cargo.toml
+cd "$LOOP_WHOLE"
+test -s web/src/data/benchmark-results.json
+npm --prefix web ci
+npm --prefix web run lint
+npm --prefix web run build
 ```
+
+> **Required setup:** `web/src/data/benchmark-results.json` must contain either the committed mock benchmark or generated evaluator results. If it is missing, create the deterministic mock data by running `python3 scripts/build_mock_benchmark.py` from `$LOOP_WHOLE`. Real benchmark data can be generated with `benchmark/build_benchmark_results.py` as documented in [`../../benchmark/README.md`](../../benchmark/README.md).
+
+Do not use `/benchmark`. The frontend route is hash-based and plural:
+
+```text
+http://localhost:5173/#/benchmarks
+```
+
+## 4. Build the gateway
+
+The sandbox configuration uses the debug binary:
+
+```bash
+cargo build --manifest-path "$LOOP_WHOLE/server/Cargo.toml"
+test -x "$LOOP_WHOLE/server/target/debug/warp-mcp-gateway"
+```
+
+> **Required setup:** The Rust gateway must be rebuilt after backend changes. This can be done by running `cargo build --manifest-path "$LOOP_WHOLE/server/Cargo.toml"`.
 
 A frontend-only change does not require rebuilding the gateway.
 
-## Prepare a clean demo baseline
+## 5. Prepare a fresh named gateway session
 
-From the sandbox repository:
+Use this section when creating a new demo checkpoint. Do not use it when resuming an existing checkpoint.
 
 ```bash
-cd /Users/tlam/loop-whole-sandbox
+cd "$SANDBOX"
 scripts/reset-demo.sh
-rm -f .loopwhole/sessions/pitch-demo.json logs/pitch-demo.log
-scripts/configure.sh --session-id pitch-demo
+rm -f ".loopwhole/sessions/$SESSION.json"
+rm -f "logs/$SESSION.log"
+scripts/configure.sh --session-id "$SESSION"
 ```
 
-`reset-demo.sh` restores tracked files to the current sandbox commit and removes untracked, non-ignored demo files. It intentionally preserves:
-
-- `opencode.json`;
-- `target/`;
-- `logs/`;
-- `.loopwhole/`.
-
-The generated `opencode.json` contains absolute paths for this checkout and is gitignored.
-
-To configure a gateway at another location:
+Check the generated OpenCode configuration:
 
 ```bash
-scripts/configure.sh /absolute/path/to/warp-mcp-gateway --session-id pitch-demo
+test -s opencode.json
+grep -F -- "--session-id" opencode.json
+grep -F -- "$SESSION" opencode.json
+grep -F -- "127.0.0.1:8787" opencode.json
+grep -F -- "$SANDBOX" opencode.json
 ```
 
-Use a stable gateway session ID when preparing a recording. Calling `scripts/configure.sh` without a session option retains the old behavior of generating a random ID.
+> **Required setup:** `opencode.json` must launch `$LOOP_WHOLE/server/target/debug/warp-mcp-gateway` with `--root "$SANDBOX"`, `--api-addr 127.0.0.1:8787`, and `--session-id "$SESSION"`. This can be configured by running `scripts/configure.sh --session-id "$SESSION"` from `$SANDBOX`.
 
-## Start the demo
+The gateway session ID is separate from OpenCode's `ses_...` conversation ID.
 
-Use two terminals.
+## 6. Start OpenCode and the gateway
 
-### Terminal 1: observability frontend
+First check that an old gateway is not occupying the API port:
 
 ```bash
-cd /Users/tlam/loop-whole-sandbox
-npm --prefix ../loop-whole/web run dev
+lsof -nP -iTCP:8787 -sTCP:LISTEN || true
 ```
 
-Open the Vite URL and navigate to the dashboard. The frontend proxies `/api` and `/health` to `127.0.0.1:8787`. It may initially report that the API is unavailable because OpenCode has not launched the gateway yet.
-
-### Terminal 2: OpenCode and gateway
+In terminal 1:
 
 ```bash
-cd /Users/tlam/loop-whole-sandbox
+export LOOP_WHOLE="/Users/tlam/loop-whole"
+export SANDBOX="/Users/tlam/loop-whole-sandbox"
+export SESSION="pitch-demo"
+cd "$SANDBOX"
 opencode
 ```
 
-OpenCode reads `opencode.json` and launches the gateway as its local `Loopwhole` MCP server. Do not manually start another gateway on port `8787`.
+OpenCode reads `$SANDBOX/opencode.json` and launches the gateway as its MCP child. Do not manually start another gateway on port `8787`.
 
-The expected startup relationship is:
+Expected process relationship:
 
 ```text
 OpenCode
   └── warp-mcp-gateway
         ├── MCP over stdio
         └── dashboard API on 127.0.0.1:8787
-
-Vite frontend
-  └── proxies API requests to 127.0.0.1:8787
 ```
 
-Verify the live API from another shell if needed:
+> **Required setup:** OpenCode must show the local `Loopwhole` MCP server as connected. This is set up by running `scripts/configure.sh --session-id "$SESSION"` before starting OpenCode.
+
+## 7. Start the frontend
+
+In terminal 2:
 
 ```bash
-curl -fsS http://127.0.0.1:8787/health
-curl -fsS http://127.0.0.1:8787/api/v1/sessions/current | python3 -m json.tool
+export LOOP_WHOLE="/Users/tlam/loop-whole"
+cd "$LOOP_WHOLE"
+npm --prefix web run dev
 ```
 
-## Run or pre-run the workflow
-
-Follow the 18 prompts in [`DEMO.md`](DEMO.md), one at a time and in order. You can keep one OpenCode process alive, or use the durable checkpoint workflow below. In either case, preserve exact request arguments and do not reset the sandbox between workflow segments. The sequence is:
-
-1. list repository files twice with the exact same `rg --files` call;
-2. read `docs/architecture.md` twice with the same offset and limit;
-3. read `reservation.rs` twice with the same offset and limit;
-4. run the exact workspace test command twice;
-5. create a zero-quantity regression test and retry the identical write;
-6. run tests to observe the new failure;
-7. apply the documented one-line quantity guard edit;
-8. reread the same source view for a diff, then reread it unchanged;
-9. run tests for failure-to-pass output, then run them unchanged;
-10. list repository files again for a new-file diff, then unchanged.
-
-Do not alter tool arguments, path spelling, offsets, limits, or working directories between paired calls. Baseline keys are exact:
+Open:
 
 ```text
-read: canonical path + offset + limit
-bash: program + exact argument list + canonical working directory
+http://localhost:5173/#/app
+http://localhost:5173/#/benchmarks
 ```
 
-The sandbox uses `rg --files --sort path` instead of `ls` because `ls` is not currently in the gateway command allowlist.
+The Vite frontend proxies `/api` and `/health` to `127.0.0.1:8787`.
 
-## Expected delivery progression
+> **Required setup:** Port `5173` must be available and frontend dependencies must be installed under `$LOOP_WHOLE/web/node_modules`. This can be set up by running `npm --prefix "$LOOP_WHOLE/web" ci` and then `npm --prefix "$LOOP_WHOLE/web" run dev`.
+
+## 8. Verify the live stack
+
+In terminal 3:
+
+```bash
+export SESSION="pitch-demo"
+lsof -nP -iTCP:8787 -sTCP:LISTEN
+lsof -nP -iTCP:5173 -sTCP:LISTEN
+pgrep -fl warp-mcp-gateway
+curl -fsS http://127.0.0.1:8787/health
+curl -fsS http://127.0.0.1:8787/api/v1/sessions/current -o /tmp/loop-whole-session.json
+grep -F -- "$SESSION" /tmp/loop-whole-session.json
+```
+
+The health response should be:
+
+```json
+{"status":"ok"}
+```
+
+The current-session response should contain the selected gateway session ID and should gain tool calls as OpenCode uses the MCP tools.
+
+## 9. Run the demo workflow
+
+Follow the prompts in `$SANDBOX/DEMO.md` exactly. Repeated operations must use identical paths, offsets, limits, arguments, and working directories because those values form the comparison-baseline keys.
+
+The intended progression is:
 
 ```text
 Repository listing       compressed → unchanged
@@ -172,122 +210,150 @@ Tests after repair        diff to passing → unchanged
 Repository relisting     diff → unchanged
 ```
 
-## Session JSON and logs
+For the resumable demo, stop after Prompt 12. Record the OpenCode `ses_...` conversation ID before exiting.
 
-Because the generated gateway command uses this sandbox as `--root`, evidence is written inside this repository, not inside `loop-whole`:
+## 10. Create the persistence checkpoint
+
+Exit OpenCode normally. Do not kill the gateway process directly. The gateway writes its session dump only during normal shutdown.
+
+Check the persisted files after OpenCode exits:
+
+```bash
+export SANDBOX="/Users/tlam/loop-whole-sandbox"
+export SESSION="pitch-demo"
+cd "$SANDBOX"
+test -s ".loopwhole/sessions/$SESSION.json"
+test -s "logs/$SESSION.log"
+ls -lh ".loopwhole/sessions/$SESSION.json"
+ls -lh "logs/$SESSION.log"
+```
+
+> **Required setup:** A resumable dump must exist at `$SANDBOX/.loopwhole/sessions/$SESSION.json`, and the sandbox filesystem must remain at the checkpoint state. This is created by starting with `scripts/configure.sh --session-id "$SESSION"`, making the pre-run calls, and exiting OpenCode normally.
+
+Do not run `scripts/reset-demo.sh` between checkpoint creation and resumption.
+
+## 11. Configure `opencode.json` to resume the session
+
+```bash
+cd "$SANDBOX"
+scripts/configure.sh --resume-session "$SESSION"
+```
+
+Check the generated configuration:
+
+```bash
+test -s opencode.json
+grep -F -- "--resume-session" opencode.json
+grep -F -- "$SESSION" opencode.json
+grep -F -- "127.0.0.1:8787" opencode.json
+grep -F -- "$SANDBOX" opencode.json
+```
+
+The command in `opencode.json` must include:
 
 ```text
-/Users/tlam/loop-whole-sandbox/logs/<session-id>.log
-/Users/tlam/loop-whole-sandbox/.loopwhole/sessions/<session-id>.json
+--root /Users/tlam/loop-whole-sandbox
+--api-addr 127.0.0.1:8787
+--context-window-tokens 200000
+--resume-session pitch-demo
 ```
 
-The session JSON is written when the gateway shuts down normally, usually when OpenCode exits or disconnects from the MCP child. While the session is running, use the live API instead. A force kill or crash may prevent the final JSON dump, although flushed log lines may still exist.
-
-The gateway session ID comes from `--session-id`/`--resume-session` when configured, or is generated automatically when neither option is present. It is separate from OpenCode's `ses_...` conversation ID.
-
-If the gateway is launched with another `--root`, both logs and `.loopwhole` move under that root. The frontend's location does not determine persistence.
-
-Inspect the newest session:
+It must not contain `--session-id` for the resumed launch:
 
 ```bash
-ls -lt .loopwhole/sessions
-python3 -m json.tool .loopwhole/sessions/<session-id>.json
+if grep -F -- "--session-id" opencode.json; then
+  echo "ERROR: opencode.json is configured for a fresh session"
+  exit 1
+fi
 ```
 
-Inspect totals only when `jq` is available:
+> **Required setup:** The selected session dump must already exist and must match the same workspace root and context-window setting. This is configured by running `scripts/configure.sh --resume-session "$SESSION"` from `$SANDBOX` after the prior OpenCode process exits normally.
+
+Changing `opencode.json` does not change a running gateway. Exit OpenCode first, regenerate the configuration, and then launch OpenCode again.
+
+## 12. Resume OpenCode and verify persistence
+
+List the OpenCode conversations:
 
 ```bash
-jq '.totals' .loopwhole/sessions/<session-id>.json
+cd "$SANDBOX"
+opencode session list
 ```
 
-## Pre-run checkpoint for a pitch or video
-
-The recommended split is after Prompt 12. That leaves six short live calls while preserving two compelling cross-process comparisons: the source reread becomes a diff against its preloaded baseline, and tests change from the preloaded failure to passing.
-
-1. Prepare the fresh named session:
-
-   ```bash
-   scripts/reset-demo.sh
-   rm -f .loopwhole/sessions/pitch-demo.json logs/pitch-demo.log
-   scripts/configure.sh --session-id pitch-demo
-   opencode
-   ```
-
-2. Record the OpenCode conversation ID (the `ses_...` value shown by `opencode session list`) and run Prompts 1–12.
-3. Exit OpenCode normally. Do **not** run `reset-demo.sh`. Verify the new dump has exactly 12 calls:
-
-   ```bash
-   python3 - <<'PY'
-   import json
-   state = json.load(open(".loopwhole/sessions/pitch-demo.json"))
-   assert len(state["toolCalls"]) == 12
-   assert "baselines" in state
-   PY
-   ```
-4. Generate the resumed MCP command:
-
-   ```bash
-   scripts/configure.sh --resume-session pitch-demo
-   ```
-
-5. During the recording, start the frontend and resume OpenCode's separate conversation:
-
-   ```bash
-   opencode -s <ses_...>
-   ```
-
-The new gateway child loads the first 12 calls before serving the API. The unchanged frontend immediately shows those calls and appends Prompts 13–18 live. A resume error is fatal rather than silently starting an empty session.
-
-The dump contains the gateway ledger and comparison baselines; OpenCode owns the model conversation. Both must be resumed, and the sandbox must remain at the Prompt 12 filesystem state. Only a normal gateway shutdown creates the checkpoint.
-
-## End and reset
-
-Exit OpenCode normally first so the gateway atomically updates the cumulative session JSON. Stop Vite separately when finished.
-
-To restore source files for another run while retaining evidence:
+Resume the matching OpenCode conversation in terminal 1:
 
 ```bash
-cd /Users/tlam/loop-whole-sandbox
+cd "$SANDBOX"
+opencode -s <ses_...>
+```
+
+OpenCode launches a new gateway child with `--resume-session "$SESSION"`. Verify it in terminal 3:
+
+```bash
+export SESSION="pitch-demo"
+pgrep -fl "warp-mcp-gateway.*--resume-session $SESSION"
+curl -fsS http://127.0.0.1:8787/health
+curl -fsS http://127.0.0.1:8787/api/v1/sessions/current -o /tmp/loop-whole-resumed-session.json
+grep -F -- "$SESSION" /tmp/loop-whole-resumed-session.json
+```
+
+Reload `http://localhost:5173/#/app`. The dashboard should immediately show the calls restored from the checkpoint and append new calls from the resumed process.
+
+Continue with Prompts 13–18 from `$SANDBOX/DEMO.md`. Exit OpenCode normally again to update the same session dump.
+
+## 13. Reset for another demo
+
+To restore the sandbox files while preserving logs, dumps, generated OpenCode configuration, and build output:
+
+```bash
+cd "$SANDBOX"
 scripts/reset-demo.sh
 ```
 
-To remove prior evidence manually:
+Before starting another fresh demo, choose a new session ID or remove the old evidence and regenerate the configuration:
 
 ```bash
-rm -rf logs .loopwhole
+export SESSION="pitch-demo-2"
+rm -f ".loopwhole/sessions/$SESSION.json"
+rm -f "logs/$SESSION.log"
+scripts/configure.sh --session-id "$SESSION"
 ```
 
-Before another fresh run, remove or choose a new gateway session ID and regenerate `opencode.json` with `scripts/configure.sh --session-id <new-id>`. The reset preserves the prior `--resume-session` config, so do not launch OpenCode before regenerating it. Do not reset between the pre-run and resumed halves.
+Never start a fresh demo while `opencode.json` still contains `--resume-session` for an old checkpoint.
 
 ## Troubleshooting
 
-### `MCP error -32000: Connection closed`
-
-Check that the generated paths exist:
-
-```bash
-test -x /Users/tlam/loop-whole/server/target/debug/warp-mcp-gateway
-test -d /Users/tlam/loop-whole-sandbox
-```
-
-Regenerate configuration and restart OpenCode:
-
-```bash
-scripts/configure.sh
-```
-
-### Dashboard reports API unavailable
-
-OpenCode must be running and must show the `Loopwhole` MCP server as connected. Confirm that exactly one process owns port `8787`:
+### Dashboard says the API is unavailable
 
 ```bash
 lsof -nP -iTCP:8787 -sTCP:LISTEN
+curl -fsS http://127.0.0.1:8787/health
+pgrep -fl warp-mcp-gateway
 ```
 
-### A repeated call does not become unchanged
+OpenCode must be running with the `Loopwhole` MCP server connected.
 
-Confirm the calls used exactly identical arguments and `cwd` values. Across a process restart, also confirm the gateway was launched with `--resume-session` and the expected dump contains a `baselines` object.
+### Session dump is missing
 
-### Session JSON is missing
+Exit OpenCode normally, then check:
 
-Exit OpenCode normally and check again. The gateway persists the JSON during shutdown, not after every tool call.
+```bash
+ls -la "$SANDBOX/.loopwhole/sessions"
+ls -la "$SANDBOX/logs"
+```
+
+A force kill or crash may prevent the final session dump.
+
+### Resume fails
+
+```bash
+test -s "$SANDBOX/.loopwhole/sessions/$SESSION.json"
+grep -F -- "--resume-session" "$SANDBOX/opencode.json"
+grep -F -- "$SESSION" "$SANDBOX/opencode.json"
+```
+
+The persisted session ID, canonical workspace root, and context-window value must match the resumed command.
+
+### Repeated calls do not become unchanged
+
+Use exactly the same tool arguments and working directory. Across a process restart, confirm that `opencode.json` uses `--resume-session` and that the correct checkpoint was not reset.
