@@ -223,15 +223,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-
-
-# LoopWhole specific
-/server/target/
-/.loopwhole/
-/logs/
-/node_modules/
-docs/handoff/
-/server/tests/opencode/workspace/
-/server/tests/opencode/fixture/target/
-/server/tests/opencode/fixture/Cargo.lock
-
