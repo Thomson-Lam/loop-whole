@@ -93,9 +93,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start", type=int, default=0, help="Skip this many selected instances")
     parser.add_argument(
         "--instance-id",
-        action="append",
+        action="extend",
+        nargs="+",
         dest="instance_ids",
-        help="Only run this instance ID (repeatable)",
+        help="Only run these instance IDs (space separated; option is repeatable)",
     )
     parser.add_argument(
         "--include-hints",
