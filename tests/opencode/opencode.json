@@ -4,7 +4,8 @@
     "read": false,
     "write": false,
     "edit": false,
-    "apply_patch": false
+    "apply_patch": false,
+    "bash": false
   },
   "mcp": {
     "Loopwhole": {
@@ -12,11 +13,11 @@
       "command": [
         "/Users/tlam/warp/target/debug/warp-mcp-gateway",
         "--root",
-        "/Users/tlam/warp",
+        "/Users/tlam/warp/tests/opencode/workspace",
         "--api-addr",
         "127.0.0.1:8787",
         "--session-id",
-        "opencode-loopwhole"
+        "opencode-smoke"
       ],
       "enabled": true,
       "timeout": 15000

@@ -2,3 +2,6 @@
 /.loopwhole/
 /logs/
 docs/handoff/
+/tests/opencode/workspace/
+/tests/opencode/fixture/target/
+/tests/opencode/fixture/Cargo.lock

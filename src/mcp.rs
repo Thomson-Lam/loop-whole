@@ -13,13 +13,14 @@ use rmcp::{
     tool, tool_handler, tool_router,
 };
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 use similar::TextDiff;
 
 const MAX_COMMAND_DIFF_BYTES: usize = 512 * 1024;
 
 use crate::{
     commands::{CommandTools, canonicalize},
+    logging::log_line,
     schema::{BashRequest, EditRequest, NewToolCall, ReadRequest, WriteRequest},
     store::{CommandBaseline, CommandBaselineKey, ReadBaseline, ReadBaselineKey, SessionStore},
     tools::FileTools,
@@ -87,7 +88,10 @@ impl Gateway {
             original_text: outcome.original,
             intercepted_text: outcome.intercepted,
         };
-        self.state.store.record(call);
+        let mut log = tool_call_log(&call);
+        let id = self.state.store.record(call);
+        log["id"] = json!(id);
+        log_line(log.to_string());
     }
 }
 
@@ -475,6 +479,40 @@ pub fn now_ms() -> i64 {
         .as_millis() as i64
 }
 
+fn tool_call_log(call: &NewToolCall) -> Value {
+    let saved_tokens = call.original_output_tokens as i64 - call.intercepted_output_tokens as i64;
+    let without_runtime_tokens = call.input_tokens + call.original_output_tokens;
+    json!({
+        "event": "tool_call",
+        "sequence": call.sequence,
+        "occurredAtMs": call.occurred_at_ms,
+        "toolName": &call.tool_name,
+        "subjectPath": call.subject_path.as_deref(),
+        "status": &call.status,
+        "durationMs": call.duration_ms,
+        "deliveryMode": &call.delivery_mode,
+        "decisionReason": call.decision_reason.as_deref(),
+        "baselineHash": call.baseline_hash.as_deref(),
+        "currentHash": call.current_hash.as_deref(),
+        "inputTokens": call.input_tokens,
+        "originalOutputTokens": call.original_output_tokens,
+        "interceptedOutputTokens": call.intercepted_output_tokens,
+        "savedTokens": saved_tokens,
+        "contextSavingsPercent": percentage(saved_tokens, without_runtime_tokens),
+        "outputSavingsPercent": percentage(saved_tokens, call.original_output_tokens),
+        "originalBytes": call.original_bytes,
+        "interceptedBytes": call.intercepted_bytes,
+    })
+}
+
+fn percentage(saved: i64, total: u64) -> f64 {
+    if total == 0 {
+        0.0
+    } else {
+        saved as f64 * 100.0 / total as f64
+    }
+}
+
 fn render_diff(previous: &str, current: &str) -> String {
     TextDiff::from_lines(previous, current)
         .unified_diff()
@@ -517,6 +555,36 @@ mod tests {
         assert_eq!(estimate_tokens("a"), 1);
         assert_eq!(estimate_tokens("abcd"), 1);
         assert_eq!(estimate_tokens("abcde"), 2);
+    }
+
+    #[test]
+    fn logs_per_call_token_reduction() {
+        let call = NewToolCall {
+            sequence: 1,
+            occurred_at_ms: 2,
+            tool_name: "read".to_string(),
+            input: json!({"path": "example.rs"}),
+            subject_path: Some("example.rs".to_string()),
+            status: "success".to_string(),
+            duration_ms: 3,
+            delivery_mode: "unchanged".to_string(),
+            decision_reason: Some("requested_view_unchanged".to_string()),
+            baseline_hash: Some("old".to_string()),
+            current_hash: Some("new".to_string()),
+            original_text: "abcdefgh".to_string(),
+            intercepted_text: "same".to_string(),
+            input_tokens: 2,
+            original_output_tokens: 8,
+            intercepted_output_tokens: 2,
+            original_bytes: 8,
+            intercepted_bytes: 4,
+        };
+
+        let log = tool_call_log(&call);
+        assert_eq!(log["savedTokens"], 6);
+        assert_eq!(log["contextSavingsPercent"], 60.0);
+        assert_eq!(log["outputSavingsPercent"], 75.0);
+        assert!(log.get("originalText").is_none());
     }
 
     #[test]
