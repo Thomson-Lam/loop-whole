@@ -26,6 +26,7 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `tests/context.md` — Entry point for local MCP smoke testing.
 - `tests/opencode/` — Isolated OpenCode configuration, fixture, instruction prompts, and smoke runner.
 - `docs/tools/` — Per-tool delivery, token-reduction, and diagnosis documentation.
+- `docs/curl.md` — Curl recipes for live health, session-summary, and tool-call detail API testing.
 - `docs/tests/manual.md` — Manual OpenCode reproduction, measurement, and troubleshooting guide.
 - `docs/planning/` — Feature, optimization, frontend, and silent-failure specifications.
 
