@@ -27,6 +27,7 @@ A Rust MCP gateway exposing context-aware file tools and an allowlisted develope
 - `web/INDEX.md` — Frontend component map and live backend API integration boundary.
 - `web/src/api.js` — Current-session and tool-call detail API hydration.
 - `web/src/useLiveSession.js` — Shared React polling hook for live session consumers.
+- `web/src/Benchmarks.jsx` — Bundled benchmark ingestion and Chart.js comparison of with/without MCP token totals.
 - `.loopwhole.example/session.schema.json` — Committed reference schema for persisted session dumps.
 - `.env.example` — Template for local secrets (`GEMINI_API_KEY`); copy to `.env` (gitignored).
 - `server/tests/context.md` — Entry point for local MCP smoke testing.

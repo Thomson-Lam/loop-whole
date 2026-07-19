@@ -84,8 +84,10 @@ venv/bin/python generate_predictions.py \
 The runner invokes `opencode run --dir <checkout>` and explicitly sets
 `OPENCODE_CONFIG` to the `opencode.json` beside the script. This ensures the
 LoopWhole MCP configuration is loaded even though each isolated checkout is a
-separate Git repository. Select an OpenCode model in `provider/model` form when
-needed:
+separate Git repository. It also overrides the gateway's HTTP API address to
+`127.0.0.1:0` by default, letting the OS assign a distinct port to every run.
+This prevents MCP startup failures when workers or separate prediction-runner
+processes overlap. Select an OpenCode model in `provider/model` form when needed:
 
 ```bash
 venv/bin/python generate_predictions.py \
@@ -99,7 +101,9 @@ Use `--opencode-bin` to select another executable and repeat
 example, `--opencode-arg=--agent --opencode-arg=build` selects an OpenCode
 agent. Arguments beginning with `-` must use the `--opencode-arg=<argument>`
 form. Use `--opencode-config path/to/opencode.json` to select another OpenCode
-configuration file.
+configuration file. Use `--opencode-api-addr HOST:PORT` only when a fixed,
+directly pollable gateway API port is more important than concurrent runs; the
+same fixed port cannot be shared by overlapping gateway processes.
 
 ## Common examples
 
